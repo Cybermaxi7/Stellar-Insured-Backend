@@ -2,7 +2,7 @@ import { TransactionDetailsDto, PaymentVerificationResultDto, FeeEstimateDto, Ge
 
 export enum SupportedChain {
   ETHEREUM = "ethereum",
-  STARKNET = "starknet",
+  StrellarNET = "Strellarnet",
 }
 
 export interface ChainConfig {

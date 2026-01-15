@@ -7,7 +7,7 @@ import { WebhookService } from './services/webhook.service';
 import { Payment } from './entities/payment.entity';
 import { WebhookLog } from './entities/webhook-log.entity';
 import { EthereumPaymentService } from './services/payment-processors/ethereum-payment.service';
-import { StarkNetPaymentService } from './services/payment-processors/starknet-payment.service';
+import { StrellarNetPaymentService } from './services/payment-processors/Strellarnet-payment.service';
 
 @Module({
   imports: [
@@ -18,7 +18,7 @@ import { StarkNetPaymentService } from './services/payment-processors/starknet-p
     PaymentService,
     WebhookService,
     EthereumPaymentService,
-    StarkNetPaymentService,
+    StrellarNetPaymentService,
   ],
   exports: [PaymentService, WebhookService],
 })

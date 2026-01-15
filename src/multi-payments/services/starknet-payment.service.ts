@@ -3,25 +3,25 @@ import { PaymentProcessor, ChainConfig, SupportedChain, PaymentVerificationResul
 import { FeeEstimateDto, GeneratedAddressDto } from "../../dto/payment.dto"
 
 @Injectable()
-export class StarkNetPaymentService extends PaymentProcessor {
-  private readonly logger = new Logger(StarkNetPaymentService.name)
+export class StrellarNetPaymentService extends PaymentProcessor {
+  private readonly logger = new Logger(StrellarNetPaymentService.name)
 
   constructor() {
     
     const chainConfig: ChainConfig = {
       chainId: "SN_MAIN",
-      chainName: SupportedChain.STARKNET,
+      chainName: SupportedChain.StrellarNET,
       nativeCurrency: "STRK",
-      explorerUrl: "https://starkscan.co",
-      requiredConfirmations: 1, // StarkNet has fast finality
-      rpcUrl: process.env.STARKNET_RPC_URL || "https://starknet-mainnet.public.blastapi.io",
+      explorerUrl: "https://Strellarscan.co",
+      requiredConfirmations: 1, // StrellarNet has fast finality
+      rpcUrl: process.env.StrellarNET_RPC_URL || "https://Strellarnet-mainnet.public.blastapi.io",
       isTestnet: false,
     }
     super(chainConfig)
   }
 
   async verifyTransaction(txHash: string): Promise<PaymentVerificationResult> {
-    this.logger.log(`Verifying StarkNet transaction: ${txHash}`)
+    this.logger.log(`Verifying StrellarNet transaction: ${txHash}`)
   
     await new Promise((resolve) => setTimeout(resolve, 500))
 
@@ -54,7 +54,7 @@ export class StarkNetPaymentService extends PaymentProcessor {
   }
 
   async generateAddress(userId?: string): Promise<GeneratedAddressDto> {
-    this.logger.log(`Generating StarkNet address for user: ${userId || "anonymous"}`)
+    this.logger.log(`Generating StrellarNet address for user: ${userId || "anonymous"}`)
 
 
     return {
@@ -66,7 +66,7 @@ export class StarkNetPaymentService extends PaymentProcessor {
   }
 
   async estimateFee(amount: number, toAddress: string): Promise<FeeEstimateDto> {
-    this.logger.log(`Estimating fee for StarkNet transaction: ${amount} STRK to ${toAddress}`) 
+    this.logger.log(`Estimating fee for StrellarNet transaction: ${amount} STRK to ${toAddress}`) 
     return {
       estimatedFee: "0.000123",
       currency: "STRK",

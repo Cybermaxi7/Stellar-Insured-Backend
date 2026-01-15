@@ -105,5 +105,5 @@ export class EstimateFeeDto {
 
 export enum SupportedChain {
   ETHEREUM = 'ethereum',
-  STARKNET = 'starknet',
+  StrellarNET = 'Strellarnet',
 }

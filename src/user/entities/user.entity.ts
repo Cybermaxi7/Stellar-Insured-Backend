@@ -64,7 +64,7 @@ export class User {
   mfaMethod?: MfaMethod;
 
   @Column({ nullable: true })
-  starknetAddress?: string;
+  StrellarnetAddress?: string;
 
   @OneToMany(() => Policy, (policy) => policy.user)
   policies: Policy[];

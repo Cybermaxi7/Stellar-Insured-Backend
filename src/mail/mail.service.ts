@@ -40,7 +40,7 @@ export class MailService {
     try {
       await this.mailerService.sendMail({
         to,
-        subject: "Welcome to Stark Insured! 🛡️",
+        subject: "Welcome to Strellar Insured! 🛡️",
         template: "welcome",
         context: {
           ...data,
@@ -125,7 +125,7 @@ export class MailService {
     try {
       await this.mailerService.sendMail({
         to,
-        subject: "Stark Insured - Email Configuration Test ",
+        subject: "Strellar Insured - Email Configuration Test ",
         template: "test-email",
         context: {
           frontendUrl: this.configService.get<string>("FRONTEND_URL"),

@@ -13,16 +13,16 @@ export function setupSwagger(app: INestApplication): void {
   }
 
   const config = new DocumentBuilder()
-    .setTitle("Stark Insured API")
+    .setTitle("Strellar Insured API")
     .setDescription(
-      "The Stark Insured Backend API - A decentralized insurance platform built on StarkNet blockchain. " +
+      "The Strellar Insured Backend API - A decentralized insurance platform built on StrellarNet blockchain. " +
         "This API provides endpoints for user management, policy creation, claims processing, governance, and risk pool management.",
     )
     .setVersion("1.0.0")
     .setContact(
-      "Stark Insured Team",
-      "https://github.com/Stark-Insured/Stark-Insured-Backend",
-      "support@starkinsured.com",
+      "Strellar Insured Team",
+      "https://github.com/Strellar-Insured/Strellar-Insured-Backend",
+      "support@Strellarinsured.com",
     )
     .setLicense("MIT", "https://opensource.org/licenses/MIT")
     .addBearerAuth(
@@ -46,7 +46,7 @@ export function setupSwagger(app: INestApplication): void {
     .addTag("Oracle", "Oracle verification and off-chain data integration")
     .addTag("lp-token", "LP Token minting, burning, and event endpoints")
     .addServer("http://localhost:3000", "Development server")
-    .addServer("https://api-staging.starkinsured.com", "Staging server")
+    .addServer("https://api-staging.Strellarinsured.com", "Staging server")
     .build()
 
   const document = SwaggerModule.createDocument(app, config, {
@@ -59,7 +59,7 @@ export function setupSwagger(app: INestApplication): void {
       tagsSorter: "alpha",
       operationsSorter: "alpha",
     },
-    customSiteTitle: "Stark Insured API Documentation",
+    customSiteTitle: "Strellar Insured API Documentation",
     customfavIcon: "/favicon.ico",
     customCss: `
       .swagger-ui .topbar { display: none }

@@ -20,7 +20,7 @@ export class ChatbotService {
 
   // Example FAQ map
   private faqs: Record<string, string> = {
-    'What is Stark Insured?': 'Stark Insured is a decentralized insurance platform on StarkNet.',
+    'What is Strellar Insured?': 'Strellar Insured is a decentralized insurance platform on StrellarNet.',
     'How do I file a claim?': 'You can file a claim via the Claims section in your dashboard.',
   };
 

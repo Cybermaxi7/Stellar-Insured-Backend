@@ -6,7 +6,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { UserRole, User } from '../../user/entities/user.entity';
-import { StarknetDaoService } from '../services/starknet-dao.service';
+import { StrellarnetDaoService } from '../services/Strellarnet-dao.service';
 
 interface AuthenticatedRequest extends Request {
   user: User;
@@ -14,7 +14,7 @@ interface AuthenticatedRequest extends Request {
 
 @Injectable()
 export class DaoMemberGuard implements CanActivate {
-  constructor(private readonly starknetDaoService: StarknetDaoService) {}
+  constructor(private readonly StrellarnetDaoService: StrellarnetDaoService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
@@ -23,10 +23,10 @@ export class DaoMemberGuard implements CanActivate {
     if (!user) {
       throw new ForbiddenException('Authentication required');
     }
-    if (!user.starknetAddress) {
-      throw new ForbiddenException('StarkNet address required for DAO membership check');
+    if (!user.StrellarnetAddress) {
+      throw new ForbiddenException('StrellarNet address required for DAO membership check');
     }
-    const isDaoMember = await this.starknetDaoService.isDaoMember(user.starknetAddress);
+    const isDaoMember = await this.StrellarnetDaoService.isDaoMember(user.StrellarnetAddress);
     if (!isDaoMember) {
       throw new ForbiddenException('DAO membership required');
     }

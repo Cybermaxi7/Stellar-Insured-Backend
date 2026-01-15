@@ -1,8 +1,8 @@
-# Oracle Integration for StarkInsured Backend
+# Oracle Integration for StrellarInsured Backend
 
 ## Overview
 
-The Oracle module provides automated off-chain data verification for policy claims in the StarkInsured platform. By integrating oracles, the system can verify real-world events (e.g., wallet exploits, protocol downtime, smart contract hacks) before claim approval and set the `oracleVerified` flag to indicate eligibility.
+The Oracle module provides automated off-chain data verification for policy claims in the StrellarInsured platform. By integrating oracles, the system can verify real-world events (e.g., wallet exploits, protocol downtime, smart contract hacks) before claim approval and set the `oracleVerified` flag to indicate eligibility.
 
 ## Architecture
 

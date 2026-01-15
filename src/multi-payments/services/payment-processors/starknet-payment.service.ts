@@ -1,2 +1,2 @@
-// Stub for StarkNet Payment Service
-export class StarkNetPaymentService {}
+// Stub for StrellarNet Payment Service
+export class StrellarNetPaymentService {}

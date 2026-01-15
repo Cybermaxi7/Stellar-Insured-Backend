@@ -24,7 +24,7 @@ describe('Notification (e2e)', () => {
           port: parseInt(process.env.DB_PORT) || 5432,
           username: process.env.DB_USERNAME || 'postgres',
           password: process.env.DB_PASSWORD || 'postgres',
-          database: process.env.DB_NAME || 'stark_insured_test',
+          database: process.env.DB_NAME || 'Strellar_insured_test',
           entities: [Notification],
           synchronize: true,
           dropSchema: true,

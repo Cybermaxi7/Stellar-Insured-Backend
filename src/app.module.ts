@@ -42,7 +42,7 @@ import { ChatbotModule } from './chatbot/chatbot.module';
         port: configService.get("DB_PORT", 5432),
         username: configService.get("DB_USERNAME", "postgres"),
         password: configService.get("DB_PASSWORD", "postgres"),
-        database: configService.get("DB_NAME", "stark_insured"),
+        database: configService.get("DB_NAME", "Strellar_insured"),
         entities: [__dirname + "/**/*.entity{.ts,.js}"],
         synchronize: configService.get("NODE_ENV", "development") !== "production",
         autoLoadEntities: true,

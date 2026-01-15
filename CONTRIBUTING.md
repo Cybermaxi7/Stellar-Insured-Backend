@@ -1,5 +1,5 @@
-🛠️ Contributing to Stark Insured Backend
-Welcome to the Stark Insured Backend – the decentralized backend service powering Stark Insured, a tamper-proof, transparent, and automated insurance platform built on the StarkNet blockchain.
+🛠️ Contributing to Strellar Insured Backend
+Welcome to the Strellar Insured Backend – the decentralized backend service powering Strellar Insured, a tamper-proof, transparent, and automated insurance platform built on the StrellarNet blockchain.
 
 We appreciate your interest in contributing to our open-source mission. Whether you're building a feature, fixing a bug, or writing documentation, you're helping build the future of decentralized insurance!
 
@@ -7,9 +7,9 @@ We appreciate your interest in contributing to our open-source mission. Whether 
 1. Fork the project
    
 2. Clone the Repository
-git clone https://github.com/Stark-Insured/Stark-Insured-Backend.git
+git clone https://github.com/Strellar-Insured/Strellar-Insured-Backend.git
 
-3. cd Stark-Insured-Backend
+3. cd Strellar-Insured-Backend
    
 4. Create your feature branch (`git checkout -b feature/amazing-feature`)
   
@@ -29,7 +29,7 @@ The application runs at:
 
 📄 Swagger UI for API docs at http://localhost:3000/api
 
-🌐 StarkNet node for blockchain connectivity
+🌐 StrellarNet node for blockchain connectivity
 
 💅 Code Style Guidelines
 Write idiomatic TypeScript.
@@ -93,5 +93,5 @@ Implement JWT-based authentication
 Validate input with class-validator
 
 🤝 Contribute to Decentralized Insurance
-Stark Insured is more than code — it's a community. Join us in building a trustless insurance ecosystem where users govern, oracles verify, and smart contracts protect.
+Strellar Insured is more than code — it's a community. Join us in building a trustless insurance ecosystem where users govern, oracles verify, and smart contracts protect.
 

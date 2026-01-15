@@ -3,7 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm"
 import { Repository, FindOptionsWhere, Between } from "typeorm"
 import { Payment, PaymentStatus, PaymentType } from "../entities/payment.entity"
 import { EthereumPaymentService } from "./payment-processors/ethereum-payment.service"
-import { StarkNetPaymentService } from "./payment-processors/starknet-payment.service"
+import { StrellarNetPaymentService } from "./payment-processors/Strellarnet-payment.service"
 import { PaymentProcessor, SupportedChain, ChainConfig } from "../interfaces/payment-processor.interface"
 import {
   CreatePaymentDto,
@@ -25,12 +25,12 @@ export class PaymentService {
   constructor(
     private paymentRepository: Repository<Payment>,
     private ethereumPaymentService: EthereumPaymentService,
-    private starknetPaymentService: StarkNetPaymentService,
+    private StrellarnetPaymentService: StrellarNetPaymentService,
   ) {
     // Register all payment processors
     this.paymentProcessors = new Map([
       [SupportedChain.ETHEREUM, this.ethereumPaymentService],
-      [SupportedChain.STARKNET, this.starknetPaymentService],
+      [SupportedChain.StrellarNET, this.StrellarnetPaymentService],
     ])
   }
 

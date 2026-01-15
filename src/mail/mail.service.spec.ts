@@ -59,7 +59,7 @@ describe("MailService", () => {
 
       expect(mockMailerService.sendMail).toHaveBeenCalledWith({
         to: "john@example.com",
-        subject: "Welcome to Stark Insured! 🛡️",
+        subject: "Welcome to Strellar Insured! 🛡️",
         template: "welcome",
         context: expect.objectContaining({
           firstName: "John",
@@ -87,7 +87,7 @@ describe("MailService", () => {
 
       expect(mockMailerService.sendMail).toHaveBeenCalledWith({
         to: "test@example.com",
-        subject: "Stark Insured - Email Configuration Test ✅",
+        subject: "Strellar Insured - Email Configuration Test ✅",
         template: "test-email",
         context: expect.objectContaining({
           frontendUrl: "http://localhost:3000",

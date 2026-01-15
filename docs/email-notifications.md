@@ -196,10 +196,10 @@ MAIL_HOST=smtp.example.com
 MAIL_PORT=587
 MAIL_USER=your-email@example.com
 MAIL_PASS=your-password
-MAIL_FROM=noreply@starkinsured.com
+MAIL_FROM=noreply@Strellarinsured.com
 
 # Frontend URL for claim links
-FRONTEND_URL=https://app.starkinsured.com
+FRONTEND_URL=https://app.Strellarinsured.com
 ```
 
 ### Email Template Configuration

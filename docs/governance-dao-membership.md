@@ -1,12 +1,12 @@
-# StarkNet DAO Membership Integration
+# StrellarNet DAO Membership Integration
 
 ## Overview
-This project uses a guard (`DaoMemberGuard`) to restrict access to governance actions to only verified StarkNet DAO members. Membership is checked using the user's `starknetAddress` and the `StarknetDaoService`.
+This project uses a guard (`DaoMemberGuard`) to restrict access to governance actions to only verified StrellarNet DAO members. Membership is checked using the user's `StrellarnetAddress` and the `StrellarnetDaoService`.
 
 ## Integration Steps
 
-1. **User Entity**: Ensure the `User` entity has a `starknetAddress` field. This is used to check DAO membership.
-2. **StarknetDaoService**: This service should be updated to use the real [StarkNet.js](https://www.starknetjs.com/) SDK or another relevant library to check on-chain DAO membership.
+1. **User Entity**: Ensure the `User` entity has a `StrellarnetAddress` field. This is used to check DAO membership.
+2. **StrellarnetDaoService**: This service should be updated to use the real [StrellarNet.js](https://www.Strellarnetjs.com/) SDK or another relevant library to check on-chain DAO membership.
    - Replace the stub logic in `isDaoMember` with a contract call or other membership check.
 3. **Guard Usage**: The `DaoMemberGuard` is applied to all routes/actions that require DAO membership. It will throw a `403 Forbidden` if the user is not a verified member.
 4. **Testing**: The guard and service are designed for easy mocking in tests. Simulate both valid and invalid membership scenarios.
@@ -15,18 +15,18 @@ This project uses a guard (`DaoMemberGuard`) to restrict access to governance ac
 
 ```
 @Injectable()
-export class StarknetDaoService {
-  async isDaoMember(starknetAddress: string): Promise<boolean> {
-    // TODO: Replace with real StarkNet.js logic
+export class StrellarnetDaoService {
+  async isDaoMember(StrellarnetAddress: string): Promise<boolean> {
+    // TODO: Replace with real StrellarNet.js logic
     // Example: Query on-chain contract for membership
-    return Boolean(starknetAddress && starknetAddress.length > 0);
+    return Boolean(StrellarnetAddress && StrellarnetAddress.length > 0);
   }
 }
 ```
 
 ## Assumptions
-- Users must have a valid `starknetAddress` to be considered for DAO membership.
-- The actual on-chain membership logic is to be implemented in `StarknetDaoService`.
+- Users must have a valid `StrellarnetAddress` to be considered for DAO membership.
+- The actual on-chain membership logic is to be implemented in `StrellarnetDaoService`.
 
 ---
 
@@ -48,6 +48,6 @@ export class StarknetDaoService {
 ---
 
 # References
-- [StarkNet.js Documentation](https://www.starknetjs.com/)
+- [StrellarNet.js Documentation](https://www.Strellarnetjs.com/)
 - [NestJS Guards](https://docs.nestjs.com/guards)
 - [NestJS Schedule](https://docs.nestjs.com/techniques/task-scheduling)

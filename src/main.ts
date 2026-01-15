@@ -33,7 +33,7 @@ async function bootstrap() {
   const port = process.env.PORT ?? 3000
   await app.listen(port)
 
-  console.log(`🚀 Stark Insured Backend is running on: http://localhost:${port}`)
+  console.log(`🚀 Strellar Insured Backend is running on: http://localhost:${port}`)
   console.log(`📚 API Documentation: http://localhost:${port}/docs`)
 }
 

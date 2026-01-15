@@ -10,6 +10,6 @@ export interface PaymentProcessor {
 export interface ChainConfig {}
 export enum SupportedChain {
   ETHEREUM = 'ethereum',
-  STARKNET = 'starknet',
+  StrellarNET = 'Strellarnet',
 }
 export interface PaymentVerificationResult {}
