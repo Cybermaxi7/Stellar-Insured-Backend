@@ -55,7 +55,7 @@ cp .env.example .env
 
 Example environment variables:
 
-PORT=4000
+PORT=3000
 DATABASE_URL=postgres://user:password@localhost:5432/stellar_insured
 REDIS_URL=redis://localhost:6379
 
@@ -84,7 +84,7 @@ npm run test:cov
 
 🌐 API Documentation
 
-Swagger UI: http://localhost:4000/api/docs
+Swagger UI: http://localhost:3000/api/docs
 
 🤝 Contributing
 
