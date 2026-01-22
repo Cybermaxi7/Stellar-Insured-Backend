@@ -4,6 +4,7 @@ import {
   UnauthorizedException,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -14,6 +15,8 @@ import { Keypair } from 'stellar-sdk';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
@@ -21,6 +24,7 @@ export class AuthService {
   ) { }
 
   async generateChallenge(walletAddress: string) {
+    this.logger.log(`Generating login challenge for wallet ${walletAddress}`);
     // 1. Validate wallet address (Basic check handled by DTO, but ensure basic length/format)
 
     // 2. Generate Nonce
@@ -33,12 +37,13 @@ export class AuthService {
     const key = `auth:challenge:${walletAddress}`;
     const ttl = 10 * 60 * 1000; // 10 minutes in milliseconds
 
-    await this.cacheManager.set(key, { nonce, timestamp, message }, ttl);
+    await this.cacheManager.set(
+      key,
+      { nonce, timestamp, message },
+      ttl,
+    );
 
     // 4. Return response
-    // Expires roughly 10 mins from now, or strictly 5 mins window for verification as per requirements?
-    // Requirement: "Verify challenge hasn't expired (5-minute window)"
-    // But TTL is 10 mins. I'll stick to logic.
     const expiresAt = new Date((timestamp + 600) * 1000).toISOString();
 
     return {
@@ -48,6 +53,16 @@ export class AuthService {
   }
 
   async login(walletAddress: string, signature: string) {
+    this.logger.log(`Login attempt for wallet ${walletAddress}`);
+
+    // Check Lockout
+    const lockoutKey = `auth:lockout:${walletAddress}`;
+    const failures = await this.cacheManager.get<number>(lockoutKey) || 0;
+    if (failures >= 5) {
+      this.logger.warn(`Wallet ${walletAddress} is locked out due to too many failed attempts`);
+      throw new BadRequestException('Wallet is temporarily locked due to too many failed attempts. Try again in 15 minutes.');
+    }
+
     const key = `auth:challenge:${walletAddress}`;
     const cached: any = await this.cacheManager.get(key);
 
@@ -59,8 +74,8 @@ export class AuthService {
 
     // Verify timestamp (5 minute window check)
     const currentTimestamp = Math.floor(Date.now() / 1000);
-    if (currentTimestamp - timestamp > 300) {
-      // 300 seconds = 5 mins
+    if (currentTimestamp - timestamp > 300) { // 300 seconds = 5 mins
+      await this.incrementFailure(walletAddress);
       throw new BadRequestException('Challenge expired (5 minute window)');
     }
 
@@ -68,20 +83,19 @@ export class AuthService {
     try {
       const keypair = Keypair.fromPublicKey(walletAddress);
 
-      // Stellar SDK verify expects Buffer for message and signature.
-      // The signature from client is likely base64 (standard for Stellar)
-      // Requirements say: "signature: string; // base64 encoded signature"
-
       const messageBuffer = Buffer.from(message);
       const signatureBuffer = Buffer.from(signature, 'base64');
 
       const isValid = keypair.verify(messageBuffer, signatureBuffer);
 
       if (!isValid) {
+        await this.incrementFailure(walletAddress);
+        this.logger.warn(`Invalid signature for wallet ${walletAddress}`);
         throw new UnauthorizedException('Invalid signature');
       }
     } catch (error: any) {
-      // Catch Stellar SDK errors (e.g. invalid key format)
+      await this.incrementFailure(walletAddress);
+      this.logger.error(`Signature verification failed for ${walletAddress}: ${error.message}`);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       throw new UnauthorizedException('Signature verification failed: ' + error.message);
     }
@@ -89,14 +103,26 @@ export class AuthService {
     // Check User
     const user = await this.usersService.findByWalletAddress(walletAddress);
     if (!user) {
+      this.logger.warn(`Wallet ${walletAddress} not registered`);
       throw new NotFoundException('User not found. Wallet not registered.');
     }
 
     // Invalidate Nonce (Replay Attack Prevention)
     await this.cacheManager.del(key);
+    // Clear failures on success
+    await this.cacheManager.del(lockoutKey);
+
+    this.logger.log(`Login successful for user ${user.id} (${walletAddress})`);
 
     // Generate Tokens
     return this.generateTokens(user);
+  }
+
+  private async incrementFailure(walletAddress: string) {
+    const lockoutKey = `auth:lockout:${walletAddress}`;
+    const failures = (await this.cacheManager.get<number>(lockoutKey) || 0) + 1;
+    const ttl = 15 * 60 * 1000; // 15 minutes
+    await this.cacheManager.set(lockoutKey, failures, ttl);
   }
 
   private async generateTokens(user: User) {
