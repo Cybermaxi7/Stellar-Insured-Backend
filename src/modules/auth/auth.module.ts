@@ -1,38 +1,30 @@
 import { Module } from '@nestjs/common';
-import { AuthController } from './controllers/auth.controller';
-import { AuthService } from './services/auth.service';
-import { WalletService } from './services/wallet.service';
-import { RateLimitGuard } from './guards/rate-limit.guard';
+import { AuthService } from './auth.service';
+import { AuthController } from './auth.controller';
+import { UsersModule } from '../users/users.module';
+import { PassportModule } from '@nestjs/passport';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule } from '../../config/config.module';
+import { AppConfigService } from '../../config/app-config.service';
+import { CacheModule } from '@nestjs/cache-manager';
 
-/**
- * Authentication Module
- *
- * Provides wallet-based user signup and account management functionality
- *
- * Features:
- * - User registration with Stellar wallet address
- * - Optional email validation and verification
- * - Referral code generation and tracking
- * - User preferences and onboarding management
- * - Rate limiting to prevent abuse
- * - Wallet address validation and normalization
- * - Bulk user import for enterprise customers
- *
- * Providers:
- * - AuthService: Main authentication service
- * - WalletService: Wallet validation and utilities
- * - RateLimitGuard: Rate limiting guard for endpoints
- *
- * Controllers:
- * - AuthController: REST endpoints for authentication
- *
- * Exports:
- * - AuthService: Can be injected in other modules
- * - WalletService: Can be injected in other modules
- */
 @Module({
+  imports: [
+    UsersModule,
+    PassportModule,
+    ConfigModule,
+    CacheModule.register(),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: AppConfigService) => ({
+        secret: configService.jwtSecret,
+        signOptions: { expiresIn: configService.jwtExpiresIn as any },
+      }),
+      inject: [AppConfigService],
+    }),
+  ],
+  providers: [AuthService],
   controllers: [AuthController],
-  providers: [AuthService, WalletService, RateLimitGuard],
-  exports: [AuthService, WalletService],
+  exports: [AuthService],
 })
 export class AuthModule {}
