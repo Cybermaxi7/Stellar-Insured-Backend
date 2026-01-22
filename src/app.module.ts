@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule } from './config/config.module';
+import { AppConfigService } from './config/app-config.service';
 import { DatabaseModule } from './common/database/database.module';
 import { HealthModule } from './modules/health/health.module';
 import { ClaimsModule } from './modules/claims/claims.module';
@@ -12,18 +14,41 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { CustomThrottlerGuard } from './common/guards/custom-throttler.guard';
 
 @Module({
   imports: [
     EventEmitterModule.forRoot(),
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60000,
-        limit: 10,
-      },
-    ]),
     ConfigModule,
     DatabaseModule,
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: AppConfigService) => ({
+        throttlers: [
+          {
+            name: 'default',
+            ttl: configService.throttleDefaultTtl,
+            limit: configService.throttleDefaultLimit,
+          },
+          {
+            name: 'auth',
+            ttl: configService.throttleAuthTtl,
+            limit: configService.throttleAuthLimit,
+          },
+          {
+            name: 'public',
+            ttl: configService.throttlePublicTtl,
+            limit: configService.throttlePublicLimit,
+          },
+          {
+            name: 'admin',
+            ttl: configService.throttleAdminTtl,
+            limit: configService.throttleAdminLimit,
+          },
+        ],
+      }),
+      inject: [AppConfigService],
+    }),   
     HealthModule,
     ClaimsModule,
     PolicyModule,
@@ -33,6 +58,12 @@ import { AppService } from './app.service';
     AuthModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: CustomThrottlerGuard,
+    },
+  ],
 })
 export class AppModule { }

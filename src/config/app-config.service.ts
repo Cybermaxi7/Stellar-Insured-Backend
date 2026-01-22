@@ -154,7 +154,52 @@ export class AppConfigService {
     return this.configService.get<boolean>('CORS_CREDENTIALS', true);
   }
 
-  // Rate Limiting
+  // Rate Limiting - Default (100 requests per 15 minutes)
+  get throttleDefaultTtl(): number {
+    return this.configService.get<number>('THROTTLE_DEFAULT_TTL', 900000); // 15 minutes in ms
+  }
+
+  get throttleDefaultLimit(): number {
+    return this.configService.get<number>('THROTTLE_DEFAULT_LIMIT', 100);
+  }
+
+  // Rate Limiting - Authentication (5 requests per 15 minutes)
+  get throttleAuthTtl(): number {
+    return this.configService.get<number>('THROTTLE_AUTH_TTL', 900000); // 15 minutes in ms
+  }
+
+  get throttleAuthLimit(): number {
+    return this.configService.get<number>('THROTTLE_AUTH_LIMIT', 5);
+  }
+
+  // Rate Limiting - Public endpoints (50 requests per minute)
+  get throttlePublicTtl(): number {
+    return this.configService.get<number>('THROTTLE_PUBLIC_TTL', 60000); // 1 minute in ms
+  }
+
+  get throttlePublicLimit(): number {
+    return this.configService.get<number>('THROTTLE_PUBLIC_LIMIT', 50);
+  }
+
+  // Rate Limiting - Admin endpoints (100 requests per minute)
+  get throttleAdminTtl(): number {
+    return this.configService.get<number>('THROTTLE_ADMIN_TTL', 60000); // 1 minute in ms
+  }
+
+  get throttleAdminLimit(): number {
+    return this.configService.get<number>('THROTTLE_ADMIN_LIMIT', 100);
+  }
+
+  // Rate Limiting - Claims (10 per hour)
+  get throttleClaimsTtl(): number {
+    return this.configService.get<number>('THROTTLE_CLAIMS_TTL', 3600000); // 1 hour in ms
+  }
+
+  get throttleClaimsLimit(): number {
+    return this.configService.get<number>('THROTTLE_CLAIMS_LIMIT', 10);
+  }
+
+  // Legacy rate limiting (kept for backward compatibility)
   get rateLimitTtl(): number {
     return this.configService.get<number>('RATE_LIMIT_TTL', 60);
   }
