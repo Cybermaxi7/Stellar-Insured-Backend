@@ -16,7 +16,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let code = 'INTERNAL_SERVER_ERROR';
     let details = null;
 
-    // 1. Mapeo de nuestros errores de Dominio
+    
     if (exception instanceof DomainError) {
       message = exception.message;
       code = exception.code;
@@ -26,7 +26,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       if (code === 'VALIDATION_FAILED') status = HttpStatus.BAD_REQUEST;
       if (code === 'UNAUTHORIZED_ACCESS') status = HttpStatus.UNAUTHORIZED;
     } 
-    // 2. Errores nativos de NestJS (Ej: validaciones automáticas de DTOs)
+    
     else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const res = exception.getResponse() as any;
@@ -34,10 +34,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       code = 'HTTP_EXCEPTION';
     }
 
-    // Registro para el desarrollador (Observabilidad)
+    
     this.logger.error(`[${code}] ${request.method} ${request.url}`, exception.stack);
 
-    // Respuesta estandarizada para el cliente
+    
     response.status(status).json({
       success: false,
       error: {

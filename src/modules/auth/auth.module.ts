@@ -15,7 +15,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
     PassportModule,
     ConfigModule,
     CacheModule.register(),
-    // Agrega esta línea para que WalletThrottlerGuard encuentre sus opciones:
+    
     ThrottlerModule.forRoot([{
       ttl: 60000,
       limit: 10,

@@ -26,3 +26,12 @@ export class UnauthorizedError extends DomainError {
     super(message, 'UNAUTHORIZED_ACCESS');
   }
 }
+
+export class RateLimitError extends DomainError {
+  constructor(public readonly remainingSeconds?: number) {
+    super(
+      `Demasiadas solicitudes. Por favor, intente de nuevo en ${remainingSeconds || 60} segundos.`,
+      'RATE_LIMIT_EXCEEDED'
+    );
+  }
+}

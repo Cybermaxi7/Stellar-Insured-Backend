@@ -2,11 +2,11 @@ import {
   Injectable,
   CanActivate,
   ExecutionContext,
-  HttpException,
-  HttpStatus,
   Logger,
 } from '@nestjs/common';
 import { Request } from 'express';
+// Importamos tu nuevo error de dominio (ajusta la ruta si es necesario)
+import { RateLimitError } from '../../../common/errors/domain.error';
 
 /**
  * In-memory store for rate limiting
@@ -81,10 +81,7 @@ export class RateLimitGuard implements CanActivate {
       this.logger.warn(
         `Rate limit exceeded for IP: ${clientIp} on endpoint: ${endpoint}`,
       );
-      throw new HttpException(
-       `Too many requests. Please try again in ${remainingTime} seconds.`,
-       HttpStatus.TOO_MANY_REQUESTS
-      );
+      throw new RateLimitError(remainingTime);
     }
 
     return true;
