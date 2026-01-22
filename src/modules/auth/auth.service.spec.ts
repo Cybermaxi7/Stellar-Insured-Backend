@@ -1,20 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { AuthService } from '../services/auth.service';
-import { WalletService } from '../services/wallet.service';
-import { SignupRequestDto } from '../dtos/auth.dto';
-import { UserRole, SignupSource } from '../entities/user.entity';
+import { AuthService as SignupAuthService } from './services/auth.service';
+import { WalletService } from './services/wallet.service';
+import { SignupRequestDto } from './dtos/auth.dto';
+import { UserRole, SignupSource } from './entities/user.entity';
 
-describe('AuthService', () => {
-  let service: AuthService;
+describe('SignupAuthService', () => {
+  let service: SignupAuthService;
   let walletService: WalletService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [AuthService, WalletService],
+      providers: [SignupAuthService, WalletService],
     }).compile();
 
-    service = module.get<AuthService>(AuthService);
+    service = module.get<SignupAuthService>(SignupAuthService);
     walletService = module.get<WalletService>(WalletService);
   });
 
@@ -339,6 +339,10 @@ describe('WalletService', () => {
       const masked = service.maskWalletAddress(address);
       expect(masked).toBe('GBBD47UZ...BPSYQA');
     });
+  });
+});
+
+// Second test suite - AuthService with actual authentication flow
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';

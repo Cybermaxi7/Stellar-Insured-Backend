@@ -31,8 +31,8 @@ export class Notification {
     enum: NotificationType,
   })
   @Column({
-    type: 'enum',
-    enum: NotificationType,
+    type: 'varchar',
+    length: 20,
   })
   type: NotificationType;
 
@@ -49,7 +49,7 @@ export class Notification {
     required: false,
   })
   @Column({
-    type: 'jsonb',
+    type: 'simple-json',
     nullable: true,
   })
   metadata?: Record<string, any>;
