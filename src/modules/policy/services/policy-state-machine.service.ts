@@ -15,7 +15,7 @@ import {
   POLICY_STATE_TRANSITIONS,
   POLICY_STATE_TRANSITIONS_MAP,
 } from '../config/policy-state-machine.config';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 
 @Injectable()
 export class PolicyStateMachineService {
@@ -138,7 +138,7 @@ export class PolicyStateMachineService {
 
     // Create audit entry
     const auditEntry: PolicyAuditEntry = {
-      id: uuidv4(),
+      id: randomUUID(),
       policyId,
       fromStatus: currentStatus,
       toStatus: transition.to,

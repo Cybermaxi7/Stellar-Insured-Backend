@@ -7,6 +7,6 @@ import { PolicyService } from './policy.service';
 @Module({
   providers: [PolicyStateMachineService, PolicyAuditService, PolicyService],
   controllers: [PolicyController],
-  exports: [PolicyStateMachineService, PolicyAuditService],
+  exports: [PolicyStateMachineService, PolicyAuditService, PolicyService],
 })
-export class PolicyModule {}
+export class PolicyModule { }

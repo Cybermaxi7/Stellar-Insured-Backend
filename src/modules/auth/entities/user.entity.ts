@@ -1,4 +1,4 @@
-import { v4 as uuid } from 'uuid';
+import { randomUUID } from 'node:crypto';
 
 /**
  * User role enumeration
@@ -40,7 +40,7 @@ export class User {
   /**
    * Unique user identifier (UUID v4)
    */
-  id: string = uuid();
+  id: string = randomUUID();
 
   /**
    * Stellar public key (wallet address) - primary identifier
@@ -138,7 +138,7 @@ export class UserPreference {
   /**
    * Unique identifier
    */
-  id: string = uuid();
+  id: string = randomUUID();
 
   /**
    * Associated user ID
@@ -196,7 +196,7 @@ export class UserPortfolio {
   /**
    * Unique identifier
    */
-  id: string = uuid();
+  id: string = randomUUID();
 
   /**
    * Associated user ID
@@ -246,7 +246,7 @@ export class UserOnboardingChecklist {
   /**
    * Unique identifier
    */
-  id: string = uuid();
+  id: string = randomUUID();
 
   /**
    * Associated user ID
