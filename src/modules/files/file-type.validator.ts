@@ -13,7 +13,6 @@ export class CustomUploadTypeValidator extends FileValidator<CustomUploadTypeVal
     if (!this.validationOptions) {
       return true;
     }
-    // Simple, solid check: Is the file's mimetype in our allowed list?
     return this.validationOptions.fileType.includes(file.mimetype);
   }
 }

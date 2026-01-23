@@ -11,7 +11,6 @@ import { ApiConsumes, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestj
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { UPLOAD_CONFIG } from '../../common/config/file-upload.config';
-// 👇 Import the new validator
 import { CustomUploadTypeValidator } from './file-type.validator';
 
 @ApiTags('Files')
@@ -47,7 +46,6 @@ export class FilesController {
   uploadFile(
     @UploadedFile(
       new ParseFilePipeBuilder()
-        // 👇 USE THE CUSTOM VALIDATOR HERE
         .addValidator(
           new CustomUploadTypeValidator({
             fileType: UPLOAD_CONFIG.ALLOWED_FILE_TYPES as any, 
