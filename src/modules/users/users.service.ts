@@ -1,39 +1,41 @@
 import { Injectable } from '@nestjs/common';
-import * as crypto from 'crypto';
-
-export interface User {
-  id: string;
-  walletAddress: string;
-  email?: string;
-  roles: string[];
-  lastLoginAt?: Date;
-}
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User, UserRole } from './entities/user.entity';
 
 @Injectable()
 export class UsersService {
-  private users: User[] = [];
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) {}
 
-  findByWalletAddress(walletAddress: string): Promise<User | undefined> {
-    return Promise.resolve(
-      this.users.find(u => u.walletAddress === walletAddress),
-    );
+  async findByWalletAddress(walletAddress: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { walletAddress } });
   }
 
-  create(walletAddress: string): Promise<User> {
-    const newUser: User = {
-      id: crypto.randomUUID(),
+  async findById(id: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { id } });
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { email } });
+  }
+
+  async create(walletAddress: string): Promise<User> {
+    const newUser = this.userRepository.create({
       walletAddress,
-      roles: ['USER'],
-    };
-    this.users.push(newUser);
-    return Promise.resolve(newUser);
+      roles: [UserRole.USER],
+    });
+    return this.userRepository.save(newUser);
   }
 
-  updateLastLogin(id: string): Promise<void> {
-    const user = this.users.find(u => u.id === id);
-    if (user) {
-      user.lastLoginAt = new Date();
-    }
-    return Promise.resolve();
+  async updateLastLogin(id: string): Promise<void> {
+    await this.userRepository.update(id, { lastLoginAt: new Date() });
+  }
+
+  async update(userId: string, data: Partial<User>): Promise<User | null> {
+    await this.userRepository.update(userId, data);
+    return this.findById(userId);
   }
 }

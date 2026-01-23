@@ -1,8 +1,3 @@
-export interface DateRange {
-  startDate: Date | null;
-  endDate: Date | null;
-}
-
 export interface DaoStatistics {
   totalProposals: number;
   activeProposals: number;
@@ -15,31 +10,36 @@ export interface DaoStatistics {
   againstVotes: number;
   abstainVotes: number;
   uniqueVoters: number;
+  _placeholder: boolean;
 }
 
 export interface PolicyStatistics {
-  _placeholder: boolean;
   totalPolicies: number;
   activePolicies: number;
   expiredPolicies: number;
-  totalPremiums: number;
+  cancelledPolicies: number;
+  totalPremiumCollected: number;
+  _placeholder: boolean;
 }
 
 export interface ClaimsStatistics {
-  _placeholder: boolean;
   totalClaims: number;
   pendingClaims: number;
   approvedClaims: number;
   rejectedClaims: number;
+  settledClaims: number;
   totalClaimAmount: number;
+  totalSettledAmount: number;
+  _placeholder: boolean;
 }
 
 export interface FraudDetectionStatistics {
-  _placeholder: boolean;
-  flaggedClaims: number;
+  totalFlagged: number;
   confirmedFraud: number;
   falsePositives: number;
-  riskScore: number;
+  pendingReview: number;
+  fraudPreventedAmount: number;
+  _placeholder: boolean;
 }
 
 export interface AnalyticsOverview {
@@ -50,4 +50,9 @@ export interface AnalyticsOverview {
   periodStart: Date | null;
   periodEnd: Date | null;
   generatedAt: Date;
+}
+
+export interface DateRange {
+  startDate: Date | null;
+  endDate: Date | null;
 }

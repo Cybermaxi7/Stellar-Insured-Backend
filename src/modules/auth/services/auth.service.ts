@@ -11,10 +11,10 @@ import {
   UserRole,
   UserStatus,
   SignupSource,
-  UserPreference,
-  UserPortfolio,
-  UserOnboardingChecklist,
-} from '../entities/user.entity';
+} from '../../users/entities/user.entity';
+import { UserPreference } from '../../users/entities/user-preference.entity';
+import { UserPortfolio } from '../../users/entities/user-portfolio.entity';
+import { UserOnboardingChecklist } from '../../users/entities/user-onboarding-checklist.entity';
 import {
   SignupRequestDto,
   SignupResponseDto,
@@ -92,7 +92,7 @@ export class AuthService {
     newUser.email = normalizedEmail;
     newUser.displayName =
       signupDto.displayName || normalizedWallet.substring(0, 8);
-    newUser.role = UserRole.USER;
+    newUser.roles = [UserRole.USER];
     newUser.status = UserStatus.ACTIVE;
     newUser.isWalletVerified = true; // Mark as verified during signup
     newUser.signupSource = signupDto.signupSource || SignupSource.ORGANIC;
@@ -124,17 +124,17 @@ export class AuthService {
 
     // Create user preferences
     const userPreference = new UserPreference();
-    userPreference.userId = newUser.id;
+    userPreference.user = newUser;
     // TODO: Store in database
 
     // Create user portfolio
     const portfolio = new UserPortfolio();
-    portfolio.userId = newUser.id;
+    portfolio.user = newUser;
     // TODO: Store in database
 
     // Create onboarding checklist
     const checklist = new UserOnboardingChecklist();
-    checklist.userId = newUser.id;
+    checklist.user = newUser;
     checklist.walletVerified = true; // Wallet verified at signup
     if (normalizedEmail) {
       checklist.emailVerified = false;
@@ -232,7 +232,7 @@ export class AuthService {
         const newUser = new User();
         newUser.walletAddress =
           this.walletService.normalizeWalletAddress(walletAddress);
-        newUser.role = UserRole.USER;
+        newUser.roles = [UserRole.USER];
         newUser.status = UserStatus.ACTIVE;
         newUser.isWalletVerified = true;
         newUser.signupSource = SignupSource.BULK_IMPORT;
@@ -350,7 +350,7 @@ export class AuthService {
       walletAddress: user.walletAddress,
       email: user.email,
       displayName: user.displayName,
-      role: user.role,
+      roles: user.roles,
       status: user.status,
       createdAt: user.createdAt,
       message: 'User account created successfully',

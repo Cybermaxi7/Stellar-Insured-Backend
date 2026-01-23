@@ -57,24 +57,27 @@ export class PolicyStateMachineService {
   /**
    * Checks if a user has permission to perform a transition.
    * @param transition - The transition configuration
-   * @param userRole - The user's role
+   * @param userRoles - The user's roles
    * @throws InsufficientPermissionsForTransitionException if user lacks permission
    */
-  validatePermission(transition: PolicyTransition, userRole: string): void {
+  validatePermission(
+    transition: PolicyTransition,
+    userRoles: string[],
+  ): void {
     if (
       transition.allowedRoles &&
       transition.allowedRoles.length > 0 &&
-      !transition.allowedRoles.includes(userRole)
+      !transition.allowedRoles.some(role => userRoles.includes(role))
     ) {
       throw new InsufficientPermissionsForTransitionException(
         transition.action,
         transition.allowedRoles,
-        userRole,
+        userRoles.join(', '),
       );
     }
 
     this.logger.debug(
-      `Permission validated for action ${transition.action} by role ${userRole}`,
+      `Permission validated for action ${transition.action} by roles ${userRoles.join(', ')}`,
     );
   }
 
@@ -99,7 +102,7 @@ export class PolicyStateMachineService {
    * @param currentStatus - Current policy status
    * @param action - Requested transition action
    * @param userId - User performing the transition
-   * @param userRole - User's role
+   * @param userRoles - User's roles
    * @param policyId - Policy ID
    * @param reason - Optional reason for transition
    * @returns The audit entry and state change event
@@ -108,7 +111,7 @@ export class PolicyStateMachineService {
     currentStatus: PolicyStatus,
     action: PolicyTransitionAction,
     userId: string,
-    userRole: string,
+    userRoles: string[],
     policyId: string,
     reason?: string,
   ): {
@@ -119,7 +122,7 @@ export class PolicyStateMachineService {
     const transition = this.validateTransition(currentStatus, action);
 
     // Validate user has permission
-    this.validatePermission(transition, userRole);
+    this.validatePermission(transition, userRoles);
 
     // Validate reason if required
     this.validateReason(transition, reason);
@@ -135,7 +138,7 @@ export class PolicyStateMachineService {
       reason,
       timestamp: new Date(),
       metadata: {
-        userRole,
+        userRoles,
         ipAddress: null, // Can be populated from request context
       },
     };

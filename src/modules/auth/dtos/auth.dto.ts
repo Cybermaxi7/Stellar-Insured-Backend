@@ -1,6 +1,6 @@
 import { IsString, IsEmail, IsOptional, Matches } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { UserRole, SignupSource, UserStatus } from '../entities/user.entity';
+import { UserRole, SignupSource, UserStatus } from '../../users/entities/user.entity';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
@@ -134,14 +134,15 @@ export class SignupResponseDto {
   displayName?: string;
 
   /**
-   * User role
+   * User roles
    */
   @ApiProperty({
-    description: 'User role in system',
+    description: 'User roles in system',
     enum: UserRole,
-    example: UserRole.USER,
+    isArray: true,
+    example: [UserRole.USER],
   })
-  role: UserRole;
+  roles: UserRole[];
 
   /**
    * Account status

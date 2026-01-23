@@ -5,8 +5,8 @@ export enum PolicyTransitionAction {
   ACTIVATE = 'ACTIVATE',
   SUSPEND = 'SUSPEND',
   RESUME = 'RESUME',
+  RENEW = 'RENEW',
   CANCEL = 'CANCEL',
   EXPIRE = 'EXPIRE',
   ARCHIVE = 'ARCHIVE',
-  RENEW = 'RENEW',
 }

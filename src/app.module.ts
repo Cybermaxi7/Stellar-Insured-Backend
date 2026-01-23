@@ -13,8 +13,13 @@ import { NotificationModule } from './modules/notification/notification.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { FileModule } from './modules/file/file.module';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { QueueModule } from './modules/queue/queue.module';
+import { AuditLogModule } from './common/audit-log/audit-log.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { FilesController } from './modules/files/files.controller';
 import { CustomThrottlerGuard } from './common/guards/custom-throttler.guard';
 
 @Module({
@@ -58,8 +63,12 @@ import { CustomThrottlerGuard } from './common/guards/custom-throttler.guard';
     UsersModule,
     AuthModule,
     AnalyticsModule,
+    FileModule,
+    PaymentsModule,
+    QueueModule,
+    AuditLogModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, FilesController],
   providers: [
     AppService,
     {

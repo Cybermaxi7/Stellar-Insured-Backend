@@ -1,145 +1,137 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class DaoStatisticsDto {
-  @ApiProperty({ description: 'Total number of proposals', example: 25 })
+  @ApiProperty({ description: 'Total number of proposals' })
   totalProposals: number;
 
-  @ApiProperty({ description: 'Number of active proposals', example: 5 })
+  @ApiProperty({ description: 'Number of active proposals' })
   activeProposals: number;
 
-  @ApiProperty({ description: 'Number of passed proposals', example: 12 })
+  @ApiProperty({ description: 'Number of passed proposals' })
   passedProposals: number;
 
-  @ApiProperty({ description: 'Number of rejected proposals', example: 3 })
+  @ApiProperty({ description: 'Number of rejected proposals' })
   rejectedProposals: number;
 
-  @ApiProperty({ description: 'Number of expired proposals', example: 2 })
+  @ApiProperty({ description: 'Number of expired proposals' })
   expiredProposals: number;
 
-  @ApiProperty({ description: 'Number of draft proposals', example: 3 })
+  @ApiProperty({ description: 'Number of draft proposals' })
   draftProposals: number;
 
-  @ApiProperty({ description: 'Total number of votes cast', example: 150 })
+  @ApiProperty({ description: 'Total number of votes cast' })
   totalVotes: number;
 
-  @ApiProperty({ description: 'Number of FOR votes', example: 80 })
+  @ApiProperty({ description: 'Number of for votes' })
   forVotes: number;
 
-  @ApiProperty({ description: 'Number of AGAINST votes', example: 50 })
+  @ApiProperty({ description: 'Number of against votes' })
   againstVotes: number;
 
-  @ApiProperty({ description: 'Number of ABSTAIN votes', example: 20 })
+  @ApiProperty({ description: 'Number of abstain votes' })
   abstainVotes: number;
 
-  @ApiProperty({ description: 'Number of unique voters', example: 45 })
+  @ApiProperty({ description: 'Number of unique voters' })
   uniqueVoters: number;
+
+  @ApiProperty({ description: 'Indicates if this is placeholder data' })
+  _placeholder: boolean;
 }
 
 export class PolicyStatisticsDto {
-  @ApiProperty({
-    description: 'Indicates this is placeholder data',
-    example: true,
-  })
-  _placeholder: boolean;
-
-  @ApiProperty({ description: 'Total number of policies', example: 0 })
+  @ApiProperty({ description: 'Total number of policies' })
   totalPolicies: number;
 
-  @ApiProperty({ description: 'Number of active policies', example: 0 })
+  @ApiProperty({ description: 'Number of active policies' })
   activePolicies: number;
 
-  @ApiProperty({ description: 'Number of expired policies', example: 0 })
+  @ApiProperty({ description: 'Number of expired policies' })
   expiredPolicies: number;
 
-  @ApiProperty({ description: 'Total premiums collected', example: 0 })
-  totalPremiums: number;
+  @ApiProperty({ description: 'Number of cancelled policies' })
+  cancelledPolicies: number;
+
+  @ApiProperty({ description: 'Total premium collected' })
+  totalPremiumCollected: number;
+
+  @ApiProperty({ description: 'Indicates if this is placeholder data' })
+  _placeholder: boolean;
 }
 
 export class ClaimsStatisticsDto {
-  @ApiProperty({
-    description: 'Indicates this is placeholder data',
-    example: true,
-  })
-  _placeholder: boolean;
-
-  @ApiProperty({ description: 'Total number of claims', example: 0 })
+  @ApiProperty({ description: 'Total number of claims' })
   totalClaims: number;
 
-  @ApiProperty({ description: 'Number of pending claims', example: 0 })
+  @ApiProperty({ description: 'Number of pending claims' })
   pendingClaims: number;
 
-  @ApiProperty({ description: 'Number of approved claims', example: 0 })
+  @ApiProperty({ description: 'Number of approved claims' })
   approvedClaims: number;
 
-  @ApiProperty({ description: 'Number of rejected claims', example: 0 })
+  @ApiProperty({ description: 'Number of rejected claims' })
   rejectedClaims: number;
 
-  @ApiProperty({ description: 'Total claim amount', example: 0 })
+  @ApiProperty({ description: 'Number of settled claims' })
+  settledClaims: number;
+
+  @ApiProperty({ description: 'Total claim amount' })
   totalClaimAmount: number;
+
+  @ApiProperty({ description: 'Total settled amount' })
+  totalSettledAmount: number;
+
+  @ApiProperty({ description: 'Indicates if this is placeholder data' })
+  _placeholder: boolean;
 }
 
 export class FraudDetectionStatisticsDto {
-  @ApiProperty({
-    description: 'Indicates this is placeholder data',
-    example: true,
-  })
-  _placeholder: boolean;
+  @ApiProperty({ description: 'Total flagged cases' })
+  totalFlagged: number;
 
-  @ApiProperty({ description: 'Number of flagged claims', example: 0 })
-  flaggedClaims: number;
-
-  @ApiProperty({ description: 'Number of confirmed fraud cases', example: 0 })
+  @ApiProperty({ description: 'Confirmed fraud cases' })
   confirmedFraud: number;
 
-  @ApiProperty({ description: 'Number of false positives', example: 0 })
+  @ApiProperty({ description: 'False positive cases' })
   falsePositives: number;
 
-  @ApiProperty({ description: 'Overall risk score', example: 0 })
-  riskScore: number;
+  @ApiProperty({ description: 'Cases pending review' })
+  pendingReview: number;
+
+  @ApiProperty({ description: 'Amount of fraud prevented' })
+  fraudPreventedAmount: number;
+
+  @ApiProperty({ description: 'Indicates if this is placeholder data' })
+  _placeholder: boolean;
 }
 
 export class AnalyticsOverviewDto {
-  @ApiProperty({
-    description: 'DAO/Voting statistics',
-    type: DaoStatisticsDto,
-  })
+  @ApiProperty({ type: DaoStatisticsDto, description: 'DAO statistics' })
   dao: DaoStatisticsDto;
 
-  @ApiProperty({
-    description: 'Policy statistics (placeholder)',
-    type: PolicyStatisticsDto,
-  })
+  @ApiProperty({ type: PolicyStatisticsDto, description: 'Policy statistics' })
   policies: PolicyStatisticsDto;
 
-  @ApiProperty({
-    description: 'Claims statistics (placeholder)',
-    type: ClaimsStatisticsDto,
-  })
+  @ApiProperty({ type: ClaimsStatisticsDto, description: 'Claims statistics' })
   claims: ClaimsStatisticsDto;
 
   @ApiProperty({
-    description: 'Fraud detection statistics (placeholder)',
     type: FraudDetectionStatisticsDto,
+    description: 'Fraud detection statistics',
   })
   fraudDetection: FraudDetectionStatisticsDto;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Start of the analytics period',
-    example: '2024-01-01T00:00:00.000Z',
     nullable: true,
   })
   periodStart: Date | null;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'End of the analytics period',
-    example: '2024-12-31T23:59:59.999Z',
     nullable: true,
   })
   periodEnd: Date | null;
 
-  @ApiProperty({
-    description: 'Timestamp when the analytics were generated',
-    example: '2024-06-15T10:30:00.000Z',
-  })
+  @ApiProperty({ description: 'Timestamp when analytics were generated' })
   generatedAt: Date;
 }

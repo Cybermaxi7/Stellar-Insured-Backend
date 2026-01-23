@@ -1,17 +1,24 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { AnalyticsQueryDto } from './dto/analytics-query.dto';
 import {
-  DateRange,
+  AnalyticsOverview,
   DaoStatistics,
   PolicyStatistics,
   ClaimsStatistics,
   FraudDetectionStatistics,
-  AnalyticsOverview,
+  DateRange,
 } from './interfaces/analytics.interfaces';
 
 @Injectable()
 export class AnalyticsService {
+  private readonly logger = new Logger(AnalyticsService.name);
+
+  /**
+   * Gets analytics overview with aggregated metrics
+   */
   async getOverview(query: AnalyticsQueryDto): Promise<AnalyticsOverview> {
+    this.logger.log('Generating analytics overview');
+
     const dateRange = this.parseDateRange(query);
 
     const [dao, policies, claims, fraudDetection] = await Promise.all([
@@ -32,6 +39,9 @@ export class AnalyticsService {
     };
   }
 
+  /**
+   * Parses date range from query parameters
+   */
   private parseDateRange(query: AnalyticsQueryDto): DateRange {
     return {
       startDate: query.startDate ? new Date(query.startDate) : null,
@@ -39,8 +49,10 @@ export class AnalyticsService {
     };
   }
 
+  /**
+   * Gets DAO statistics (placeholder implementation)
+   */
   private async getDaoStatistics(): Promise<DaoStatistics> {
-    // Placeholder implementation - returns zeros until DAO entities are implemented
     return {
       totalProposals: 0,
       activeProposals: 0,
@@ -53,40 +65,51 @@ export class AnalyticsService {
       againstVotes: 0,
       abstainVotes: 0,
       uniqueVoters: 0,
+      _placeholder: true,
     };
   }
 
+  /**
+   * Gets policy statistics (placeholder implementation)
+   */
   private async getPolicyStatistics(): Promise<PolicyStatistics> {
-    // Placeholder implementation - returns zeros until policies module is implemented
     return {
-      _placeholder: true,
       totalPolicies: 0,
       activePolicies: 0,
       expiredPolicies: 0,
-      totalPremiums: 0,
+      cancelledPolicies: 0,
+      totalPremiumCollected: 0,
+      _placeholder: true,
     };
   }
 
+  /**
+   * Gets claims statistics (placeholder implementation)
+   */
   private async getClaimsStatistics(): Promise<ClaimsStatistics> {
-    // Placeholder implementation - returns zeros until claims module is implemented
     return {
-      _placeholder: true,
       totalClaims: 0,
       pendingClaims: 0,
       approvedClaims: 0,
       rejectedClaims: 0,
+      settledClaims: 0,
       totalClaimAmount: 0,
+      totalSettledAmount: 0,
+      _placeholder: true,
     };
   }
 
+  /**
+   * Gets fraud detection statistics (placeholder implementation)
+   */
   private async getFraudDetectionStatistics(): Promise<FraudDetectionStatistics> {
-    // Placeholder implementation - returns zeros until fraud detection module is implemented
     return {
-      _placeholder: true,
-      flaggedClaims: 0,
+      totalFlagged: 0,
       confirmedFraud: 0,
       falsePositives: 0,
-      riskScore: 0,
+      pendingReview: 0,
+      fraudPreventedAmount: 0,
+      _placeholder: true,
     };
   }
 }

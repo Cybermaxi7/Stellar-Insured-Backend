@@ -1,5 +1,10 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { AnalyticsService } from './analytics.service';
 import { AnalyticsQueryDto, AnalyticsOverviewDto } from './dto';
 
@@ -12,16 +17,22 @@ export class AnalyticsController {
   @ApiOperation({
     summary: 'Get analytics overview',
     description:
-      'Returns aggregated metrics including DAO statistics and placeholders for policies, claims, and fraud detection.',
+      'Returns aggregated analytics metrics for DAO, policies, claims, and fraud detection',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    description: 'Start date for filtering (ISO 8601)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    description: 'End date for filtering (ISO 8601)',
   })
   @ApiResponse({
     status: 200,
     description: 'Analytics overview retrieved successfully',
     type: AnalyticsOverviewDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid query parameters',
   })
   async getOverview(
     @Query() query: AnalyticsQueryDto,
