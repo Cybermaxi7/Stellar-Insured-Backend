@@ -12,6 +12,7 @@ import { DaoModule } from './modules/dao/dao.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { FileModule } from './modules/file/file.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CustomThrottlerGuard } from './common/guards/custom-throttler.guard';
@@ -50,7 +51,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard';
         ],
       }),
       inject: [AppConfigService],
-    }),   
+    }),
     HealthModule,
     ClaimsModule,
     PolicyModule,
@@ -58,6 +59,7 @@ import { RolesGuard } from './modules/auth/guards/roles.guard';
     NotificationModule,
     UsersModule,
     AuthModule,
+    FileModule,
   ],
   controllers: [AppController],
   providers: [
