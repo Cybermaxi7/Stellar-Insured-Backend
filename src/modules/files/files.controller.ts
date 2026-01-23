@@ -7,19 +7,52 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { UPLOAD_CONFIG } from '../../common/config/file-upload.config'; 
+import { ApiConsumes, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { UPLOAD_CONFIG } from '../../common/config/file-upload.config';
+// 👇 Import the new validator
+import { CustomUploadTypeValidator } from './file-type.validator';
 
+@ApiTags('Files')
 @Controller('files')
 export class FilesController {
   
   @Post('upload')
-  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Upload a generic file (Image/PDF)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 201, description: 'File uploaded successfully' })
+  @ApiResponse({ status: 422, description: 'Validation failed' })
+  @UseInterceptors(FileInterceptor('file', {
+    storage: diskStorage({
+      destination: './uploads',
+      filename: (req, file, callback) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        const ext = extname(file.originalname);
+        callback(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
+      },
+    }),
+  }))
   uploadFile(
     @UploadedFile(
       new ParseFilePipeBuilder()
-        .addFileTypeValidator({
-          fileType: UPLOAD_CONFIG.ALLOWED_FILE_TYPES,
-        })
+        // 👇 USE THE CUSTOM VALIDATOR HERE
+        .addValidator(
+          new CustomUploadTypeValidator({
+            fileType: UPLOAD_CONFIG.ALLOWED_FILE_TYPES as any, 
+          }),
+        )
         .addMaxSizeValidator({
           maxSize: UPLOAD_CONFIG.MAX_FILE_SIZE,
         })
@@ -32,9 +65,9 @@ export class FilesController {
   ) {
     return {
       message: 'File uploaded successfully',
-      filename: file.originalname,
-      size: file.size,
-      mimetype: file.mimetype,
+      originalName: file.originalname,
+      savedName: file.filename,
+      path: file.path,
     };
   }
 }
