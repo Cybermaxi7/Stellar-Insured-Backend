@@ -4,7 +4,6 @@ import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
-// import { ConfigModule } from '../../config/config.module';
 import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import { AppConfigService } from '../../config/app-config.service';
 import { CacheModule } from '@nestjs/cache-manager';
@@ -27,7 +26,7 @@ import { WalletService } from './services/wallet.service';
     ]),
     JwtModule.registerAsync({
       imports: [NestConfigModule],
-      useFactory: async (configService: AppConfigService) => ({
+      useFactory: (configService: AppConfigService) => ({
         secret: configService.jwtSecret,
         signOptions: { expiresIn: configService.jwtExpiresIn as any },
       }),

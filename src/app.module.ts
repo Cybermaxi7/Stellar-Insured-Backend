@@ -2,8 +2,6 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerModule } from '@nestjs/throttler';
-// import { ConfigModule } from './config/config.module';
-// import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import { AppConfigService } from './config/app-config.service';
 import { DatabaseModule } from './common/database/database.module';
 import { HealthModule } from './modules/health/health.module';
@@ -25,7 +23,6 @@ import { ConfigModule } from './config/config.module';
 @Module({
   imports: [
     ConfigModule,
-    // NestConfigModule,
     HealthModule,
     AuditLogModule,
     QueueModule,
