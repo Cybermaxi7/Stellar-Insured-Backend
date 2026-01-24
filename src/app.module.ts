@@ -2,7 +2,8 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { ConfigModule } from './config/config.module';
+// import { ConfigModule } from './config/config.module';
+// import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import { AppConfigService } from './config/app-config.service';
 import { DatabaseModule } from './common/database/database.module';
 import { HealthModule } from './modules/health/health.module';
@@ -19,10 +20,39 @@ import { AuditLogModule } from './common/audit-log/audit-log.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { FilesController } from './modules/files/files.controller';
+import { ConfigModule } from './config/config.module';
 
 @Module({
-  imports: [ConfigModule, HealthModule],
+  imports: [
+    ConfigModule,
+    // NestConfigModule,
+    HealthModule,
+    AuditLogModule,
+    QueueModule,
+    PaymentsModule,
+    AuthModule,
+    UsersModule,
+    DatabaseModule,
+    ClaimsModule,
+    PolicyModule,
+    DaoModule,
+    NotificationModule,
+    FileModule,
+    EventEmitterModule.forRoot(),
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [AppConfigService],
+      useFactory: (configService: AppConfigService) => ({
+        throttlers: [
+          {
+            ttl: Number(configService.get('THROTTLE_TTL') ?? 60),
+            limit: Number(configService.get('THROTTLE_LIMIT') ?? 100),
+          },
+        ],
+      }),
+    }),
+  ],
   controllers: [AppController, FilesController],
-  providers: [AppService],
+  providers: [AppService, AppConfigService],
 })
 export class AppModule {}

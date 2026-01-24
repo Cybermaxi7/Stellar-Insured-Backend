@@ -9,9 +9,9 @@ import {
   MaxLength,
   Max,
   Min,
-  Type,
 } from 'class-validator';
 import { ClaimType } from '../entities/claim.entity';
+import { Type } from 'class-transformer';
 
 export class CreateClaimDto {
   @IsUUID()

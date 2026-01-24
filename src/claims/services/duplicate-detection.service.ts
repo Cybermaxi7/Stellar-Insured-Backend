@@ -1,21 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { Repository, MoreThan, IsNull } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Claim } from '../entities/claim.entity';
 import { DuplicateClaimCheck } from '../entities/duplicate-claim-check.entity';
-import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class DuplicateDetectionService {
   private readonly logger = new Logger(DuplicateDetectionService.name);
 
   constructor(
-    private claimRepository: Repository<Claim>,
-    private duplicateCheckRepository: Repository<DuplicateClaimCheck>,
+    @InjectRepository(Claim)
+    private readonly claimRepository: Repository<Claim>,
+    @InjectRepository(DuplicateClaimCheck)
+    private readonly duplicateCheckRepository: Repository<DuplicateClaimCheck>,
   ) {}
 
   /**
    * Detects duplicate claims based on multiple criteria
-   * Returns null if no duplicates found, or the duplicate claim ID and match percentage
    */
   async detectDuplicates(
     policyId: string,
@@ -27,48 +28,33 @@ export class DuplicateDetectionService {
     matchPercentage: number;
     detectionMethod: string;
   } | null> {
-    // Check for exact amount match within 5% variance
+    // 1. Amount match
     const amountDuplicate = await this.checkAmountMatch(
       policyId,
       incidentDate,
       claimAmount,
     );
-    if (amountDuplicate) {
-      this.logger.warn(
-        `Amount match duplicate detected: claim ${amountDuplicate.duplicateClaimId} matches ${claimAmount}`,
-      );
-      return amountDuplicate;
-    }
+    if (amountDuplicate) return amountDuplicate;
 
-    // Check for description similarity using fuzzy matching
+    // 2. Description similarity
     const descriptionDuplicate = await this.checkDescriptionSimilarity(
       policyId,
       description,
     );
-    if (descriptionDuplicate) {
-      this.logger.warn(
-        `Description similarity duplicate detected: claim ${descriptionDuplicate.duplicateClaimId}`,
-      );
-      return descriptionDuplicate;
-    }
+    if (descriptionDuplicate) return descriptionDuplicate;
 
-    // Check for temporal proximity (same user, same policy, within 24 hours)
+    // 3. Temporal proximity (same policy, last 24 hours)
     const temporalDuplicate = await this.checkTemporalProximity(
       policyId,
       claimAmount,
     );
-    if (temporalDuplicate) {
-      this.logger.warn(
-        `Temporal proximity duplicate detected: claim ${temporalDuplicate.duplicateClaimId}`,
-      );
-      return temporalDuplicate;
-    }
+    if (temporalDuplicate) return temporalDuplicate;
 
     return null;
   }
 
   /**
-   * Detects duplicates based on: Policy ID + Incident Date + Claim Amount (within 5% variance)
+   * Detect duplicates based on claim amount
    */
   private async checkAmountMatch(
     policyId: string,
@@ -79,7 +65,7 @@ export class DuplicateDetectionService {
     matchPercentage: number;
     detectionMethod: string;
   } | null> {
-    const variance = claimAmount * 0.05; // 5% variance
+    const variance = claimAmount * 0.05;
     const minAmount = claimAmount - variance;
     const maxAmount = claimAmount + variance;
 
@@ -95,7 +81,7 @@ export class DuplicateDetectionService {
       existingClaim.claimAmount >= minAmount &&
       existingClaim.claimAmount <= maxAmount
     ) {
-      const matchPercentage = 95 + Math.random() * 5; // 95-100% match
+      const matchPercentage = 95 + Math.random() * 5; // 95-100%
       return {
         duplicateClaimId: existingClaim.id,
         matchPercentage: Math.round(matchPercentage * 100) / 100,
@@ -107,7 +93,7 @@ export class DuplicateDetectionService {
   }
 
   /**
-   * Detects duplicates based on: Policy ID + Description similarity (using fuzzy matching)
+   * Detect duplicates based on description similarity
    */
   private async checkDescriptionSimilarity(
     policyId: string,
@@ -120,13 +106,14 @@ export class DuplicateDetectionService {
     const recentClaims = await this.claimRepository.find({
       where: { policyId },
       order: { createdAt: 'DESC' },
-      take: 20, // Check only recent claims for performance
+      take: 20,
     });
 
     for (const claim of recentClaims) {
-      const similarity = this.calculateSimilarity(description, claim.description);
-
-      // Flag if similarity is above 80%
+      const similarity = this.calculateSimilarity(
+        description,
+        claim.description,
+      );
       if (similarity > 0.8) {
         return {
           duplicateClaimId: claim.id,
@@ -140,7 +127,7 @@ export class DuplicateDetectionService {
   }
 
   /**
-   * Detects duplicates based on: Same user submitting identical claims within 24 hours
+   * Detect duplicates based on temporal proximity (24h)
    */
   private async checkTemporalProximity(
     policyId: string,
@@ -155,7 +142,7 @@ export class DuplicateDetectionService {
     const recentClaim = await this.claimRepository.findOne({
       where: {
         policyId,
-        createdAt: () => `createdAt > '${twentyFourHoursAgo.toISOString()}'`,
+        createdAt: MoreThan(twentyFourHoursAgo),
       },
       order: { createdAt: 'DESC' },
     });
@@ -172,36 +159,26 @@ export class DuplicateDetectionService {
   }
 
   /**
-   * Calculate string similarity using Levenshtein-like approach (simplified)
+   * Simple string similarity (Levenshtein-style)
    */
   private calculateSimilarity(str1: string, str2: string): number {
     const s1 = str1.toLowerCase();
     const s2 = str2.toLowerCase();
-
     const longer = s1.length > s2.length ? s1 : s2;
     const shorter = s1.length > s2.length ? s2 : s1;
-
-    if (longer.length === 0) {
-      return 1.0;
-    }
+    if (!longer.length) return 1.0;
 
     const editDistance = this.getEditDistance(longer, shorter);
     return (longer.length - editDistance) / longer.length;
   }
 
-  /**
-   * Calculate Levenshtein distance between two strings
-   */
   private getEditDistance(s1: string, s2: string): number {
     const costs: number[] = [];
-    for (let k = 0; k <= s1.length; k++) {
-      costs[k] = k;
-    }
+    for (let k = 0; k <= s1.length; k++) costs[k] = k;
 
     for (let i = 1; i <= s2.length; i++) {
-      costs[0] = i;
       let nw = i - 1;
-
+      costs[0] = i;
       for (let j = 1; j <= s1.length; j++) {
         const cj = Math.min(
           1 + Math.min(costs[j], costs[j - 1]),
@@ -216,7 +193,7 @@ export class DuplicateDetectionService {
   }
 
   /**
-   * Records a duplicate detection check in the database
+   * Record a duplicate detection
    */
   async recordDuplicateCheck(
     claimId: string,
@@ -237,7 +214,7 @@ export class DuplicateDetectionService {
   }
 
   /**
-   * Mark a duplicate detection as false positive
+   * Mark a duplicate check as false positive
    */
   async markAsFalsePositive(
     duplicateCheckId: string,
@@ -260,7 +237,7 @@ export class DuplicateDetectionService {
   async getUnresolvedDuplicates(): Promise<DuplicateClaimCheck[]> {
     return this.duplicateCheckRepository.find({
       where: {
-        resolvedAt: null,
+        resolvedAt: IsNull(),
         isFalsePositive: false,
       },
       order: { createdAt: 'DESC' },

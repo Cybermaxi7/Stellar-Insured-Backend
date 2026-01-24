@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
-import { Queue } from 'bull';
+import type { Queue } from 'bull';
 import { AuditLogJobData } from './interfaces/audit-log-job.interface';
 
 @Injectable()
 export class QueueService {
   constructor(
-    @InjectQueue('audit-logs') private auditLogsQueue: Queue,
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    @InjectQueue('audit-logs')
+    private readonly auditLogsQueue: Queue<AuditLogJobData>,
   ) {}
 
   /**
@@ -42,7 +44,7 @@ export class QueueService {
    * Drain all queues
    */
   async drainQueues(): Promise<void> {
-    await this.auditLogsQueue.drain();
+    await this.auditLogsQueue.empty();
   }
 
   /**
@@ -50,5 +52,15 @@ export class QueueService {
    */
   async closeQueues(): Promise<void> {
     await this.auditLogsQueue.close();
+  }
+
+  async onApplicationShutdown(signal?: string) {
+    try {
+      await this.drainQueues();
+      await this.closeQueues();
+      console.log(`Queues gracefully shut down (signal: ${signal})`);
+    } catch (err) {
+      console.error('Error during queue shutdown', err);
+    }
   }
 }

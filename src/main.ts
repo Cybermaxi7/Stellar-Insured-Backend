@@ -1,86 +1,110 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { AppValidationPipe } from './common/pipes/validation.pipe';
-import { QueueService } from './modules/queue/queue.service';
 import helmet from 'helmet';
+import { AppConfigService } from './config/app-config.service';
+import { Logger } from '@nestjs/common';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  const logger = new Logger('Bootstrap');
 
-  // Get configuration service
-  const configService = app.get(ConfigService);
-  const queueService = app.get(QueueService);
+  try {
+    logger.log('🚀 Starting NestJS application...');
 
-  // Enable CORS
-  const corsOrigin = configService.get<string>('CORS_ORIGIN');
-  app.enableCors({
-    origin: corsOrigin ? corsOrigin.split(',') : '*',
-    credentials: configService.get<boolean>('CORS_CREDENTIALS', true),
-  });
+    const app = await NestFactory.create(AppModule, {
+      logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+    });
 
-  // Security middleware
-  app.use(helmet());
+    logger.log('✅ NestFactory created successfully');
 
-  // Set global prefix
-  app.setGlobalPrefix('api/v1');
+    // Get configuration service
+    const configService = app.get(AppConfigService);
+    logger.log('✅ Config service initialized');
 
-  // Global validation pipe
-  app.useGlobalPipes(AppValidationPipe);
+    // Enable CORS - Use typed getters
+    app.enableCors({
+      origin: configService.corsOrigin,
+      credentials: configService.corsCredentials,
+    });
+    logger.log('✅ CORS enabled');
 
-  // Global exception filter
-  app.useGlobalFilters(new GlobalExceptionFilter());
+    // Security middleware
+    app.use(helmet());
+    logger.log('✅ Security middleware loaded');
 
-  // Enable shutdown hooks
-  app.enableShutdownHooks();
+    // Set global prefix
+    app.setGlobalPrefix('api/v1');
+    logger.log('✅ Global prefix set to api/v1');
 
-  // Register graceful shutdown handler for queues
-  app.onModuleDestroy(async () => {
-    try {
-      await queueService.drainQueues();
-      await queueService.closeQueues();
-      /* eslint-disable no-console */
-      console.log('Queues gracefully shut down');
-      /* eslint-enable no-console */
-    } catch (error) {
-      /* eslint-disable no-console */
-      console.error('Error during queue shutdown:', error);
-      /* eslint-enable no-console */
+    // Global validation pipe
+    app.useGlobalPipes(AppValidationPipe);
+    logger.log('✅ Global validation pipe configured');
+
+    // Global exception filter
+    app.useGlobalFilters(new GlobalExceptionFilter());
+    logger.log('✅ Global exception filter configured');
+
+    // Enable shutdown hooks
+    app.enableShutdownHooks();
+    logger.log('✅ Shutdown hooks enabled');
+
+    // Swagger setup - Use typed getters
+    if (configService.swaggerEnabled) {
+      const config = new DocumentBuilder()
+        .setTitle('Stellar Insured API')
+        .setDescription('API documentation for Stellar Insured backend')
+        .setVersion(configService.appVersion)
+        .addBearerAuth()
+        .build();
+
+      const document = SwaggerModule.createDocument(app, config);
+      SwaggerModule.setup(configService.swaggerPath, app, document);
+      logger.log('✅ Swagger documentation configured');
     }
-  });
 
-  // Swagger setup
-  if (configService.get<boolean>('SWAGGER_ENABLED', true)) {
-    const config = new DocumentBuilder()
-      .setTitle('Stellar Insured API')
-      .setDescription('API documentation for Stellar Insured backend')
-      .setVersion(configService.get<string>('APP_VERSION', '1.0'))
-      .addBearerAuth()
-      .build();
+    // Get port from config - Use typed getter
+    const port = configService.port;
+    logger.log(`📡 Attempting to start server on port ${port}...`);
 
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup(
-      configService.get<string>('SWAGGER_PATH', '/api/docs'),
-      app,
-      document,
+    await app.listen(port);
+
+    // Success message
+    logger.log(`\n🎉 ==========================================`);
+    logger.log(`🚀 ${configService.appName} v${configService.appVersion}`);
+    logger.log(`🌍 Running on: http://localhost:${port}`);
+    logger.log(`📊 Environment: ${configService.nodeEnv}`);
+    logger.log(
+      `📋 Swagger UI: http://localhost:${port}${configService.swaggerPath}`,
     );
+    logger.log(`⚡ Health check: http://localhost:${port}/health`);
+    logger.log(`🔗 Stellar Network: ${configService.stellarNetwork}`);
+    logger.log(
+      `💾 Database: ${configService.databaseHost}:${configService.databasePort}`,
+    );
+    logger.log(
+      `🔄 Redis: ${configService.redisHost}:${configService.redisPort}`,
+    );
+    logger.log(`==========================================\n`);
+  } catch (error) {
+    logger.error('❌ Failed to bootstrap application:', error);
+
+    // Log the full error stack
+    if (error instanceof Error) {
+      logger.error(`Error name: ${error.name}`);
+      logger.error(`Error message: ${error.message}`);
+      logger.error(`Error stack: ${error.stack}`);
+    } else {
+      logger.error(`Unknown error: ${JSON.stringify(error)}`);
+    }
+
+    process.exit(1);
   }
-
-  // Get port from config
-  const port = configService.get<number>('PORT', 4000);
-
-  await app.listen(port);
-
-  // Log startup information
-  /* eslint-disable no-console */
-  console.log(`\n Application is running on: http://localhost:${port}`);
-  console.log(
-    ` Environment: ${configService.get('NODE_ENV', 'development')}`,
-  );
-  console.log(`📋 Swagger UI: http://localhost:${port}/api/docs`);
-  /* eslint-enable no-console */
 }
 
-void bootstrap();
+// Wrap bootstrap in try-catch at the top level
+bootstrap().catch(error => {
+  console.error('💥 Unhandled error in bootstrap:', error);
+  process.exit(1);
+});

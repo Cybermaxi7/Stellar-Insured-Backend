@@ -5,7 +5,7 @@ import { ClaimApprovedEvent } from '../../events/claim/claim-approved.event';
 import { ClaimRejectedEvent } from '../../events/claim/claim-rejected.event';
 import { ClaimSettledEvent } from '../../events/claim/claim-settled.event';
 import { EventNames } from '../../events/event-names';
-import { AuditLogService } from './audit-log.service';
+import { AuditLogService } from '../services/audit-log.service';
 
 /**
  * Listens to claim events and queues audit logs
@@ -28,9 +28,7 @@ export class ClaimAuditLogListener {
         { eventType: 'CLAIM_SUBMITTED' },
       );
     } catch (error) {
-      this.logger.error(
-        `Failed to log claim submitted event: ${error.message}`,
-      );
+      this.logger.error(`Failed to log claim submitted event: ${error}`);
     }
   }
 
@@ -38,16 +36,14 @@ export class ClaimAuditLogListener {
   async handleClaimApproved(event: ClaimApprovedEvent): Promise<void> {
     try {
       await this.auditLogService.logClaimAction(
-        event.approvedBy,
+        event.approvedBy ?? 'unknown',
         event.claimId,
         'APPROVE',
         { approvalAmount: event.approvalAmount },
         { eventType: 'CLAIM_APPROVED' },
       );
     } catch (error) {
-      this.logger.error(
-        `Failed to log claim approved event: ${error.message}`,
-      );
+      this.logger.error(`Failed to log claim approved event: ${error}`);
     }
   }
 
@@ -55,16 +51,14 @@ export class ClaimAuditLogListener {
   async handleClaimRejected(event: ClaimRejectedEvent): Promise<void> {
     try {
       await this.auditLogService.logClaimAction(
-        event.rejectedBy,
+        event.rejectedBy ?? 'unknown',
         event.claimId,
         'REJECT',
         { rejectionReason: event.rejectionReason },
         { eventType: 'CLAIM_REJECTED' },
       );
     } catch (error) {
-      this.logger.error(
-        `Failed to log claim rejected event: ${error.message}`,
-      );
+      this.logger.error(`Failed to log claim rejected event: ${error}`);
     }
   }
 
@@ -72,16 +66,14 @@ export class ClaimAuditLogListener {
   async handleClaimSettled(event: ClaimSettledEvent): Promise<void> {
     try {
       await this.auditLogService.logClaimAction(
-        event.settledBy,
+        event.settledBy ?? 'unknown',
         event.claimId,
         'SETTLE',
         { settlementAmount: event.settlementAmount },
         { eventType: 'CLAIM_SETTLED' },
       );
     } catch (error) {
-      this.logger.error(
-        `Failed to log claim settled event: ${error.message}`,
-      );
+      this.logger.error(`Failed to log claim settled event: ${error}`);
     }
   }
 }
