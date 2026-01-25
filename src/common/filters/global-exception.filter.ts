@@ -9,12 +9,14 @@ import {
 import { Response, Request } from 'express';
 import { ApiErrorResponse } from '../interfaces/api-response.interface';
 import { getErrorCode } from '../constants/error-codes';
+import { DomainError } from '../errors/domain.error';
+
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(GlobalExceptionFilter.name);
+  private readonly logger = new Logger('GlobalExceptionFilter');
 
-  catch(exception: unknown, host: ArgumentsHost) {
+  catch(exception: any, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
@@ -74,6 +76,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       ...(details && { details }),
     };
 
-    response.status(status).json(errorResponse);
+    response.status(status).json({
+      success: false,
+      error: {
+        code,
+        message,
+        details,
+        timestamp: new Date().toISOString(),
+        path: request.url,
+      },
+    });
   }
 }
