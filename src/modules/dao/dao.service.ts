@@ -33,6 +33,9 @@ export class DaoService {
     @InjectRepository(Vote)
     private readonly voteRepository: Repository<Vote>,
     private readonly dataSource: DataSource,
+    private readonly featureFlags: FeatureFlagService,
+    private readonly daoLegacy: DaoLegacyService,
+    private readonly daoV2: DaoV2Service,
   ) {}
 
   async createProposal(
@@ -235,6 +238,14 @@ export class DaoService {
       hasQuorum: totalVotes >= this.QUORUM_THRESHOLD,
       quorumThreshold: this.QUORUM_THRESHOLD,
     };
+  }
+
+ async process() {
+    if (await this.featureFlags.isEnabled('DAO_V2')) {
+      return this.daoV2.process();
+    }
+
+    return this.daoLegacy.process();
   }
 
   async activateProposal(id: string, _user: User): Promise<ProposalResponseDto> {
