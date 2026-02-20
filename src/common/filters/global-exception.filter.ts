@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { ApiErrorResponse } from '../interfaces/api-response.interface';
-import { getErrorCode } from '../constants/error-codes';
+import { getErrorCode, ErrorCode } from '../constants/error-codes';
 import { DomainError } from '../errors/domain.error';
 
 
@@ -58,7 +58,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             errorField.toLowerCase().includes('validation') ||
             errorField.toLowerCase().includes('bad request')
           ) {
-            errorCode = 'VALIDATION_ERROR';
+            errorCode = ErrorCode.VALIDATION_ERROR;
           }
         }
         // Capture validation details

@@ -1,4 +1,5 @@
 import { HttpStatus } from '@nestjs/common';
+import { ErrorCode } from '../constants/error-codes';
 
 export abstract class DomainError extends Error {
   /**
@@ -8,7 +9,7 @@ export abstract class DomainError extends Error {
    */
   constructor(
     public readonly message: string,
-    public readonly code: string,
+    public readonly code: ErrorCode,
     public readonly details?: any,
     public readonly httpStatus: number = HttpStatus.BAD_REQUEST,
   ) {
@@ -21,7 +22,7 @@ export class EntityNotFoundError extends DomainError {
   constructor(entity: string, identifier: string) {
     super(
       `${entity} con ID ${identifier} no fue encontrado`,
-      'ENTITY_NOT_FOUND',
+      ErrorCode.RESOURCE_NOT_FOUND,
       undefined,
       HttpStatus.NOT_FOUND,
     );
@@ -30,13 +31,13 @@ export class EntityNotFoundError extends DomainError {
 
 export class ValidationError extends DomainError {
   constructor(message: string, details?: any) {
-    super(message, 'VALIDATION_FAILED', details, HttpStatus.UNPROCESSABLE_ENTITY);
+    super(message, ErrorCode.VALIDATION_ERROR, details, HttpStatus.UNPROCESSABLE_ENTITY);
   }
 }
 
 export class UnauthorizedError extends DomainError {
   constructor(message: string = 'No autorizado para realizar esta acción') {
-    super(message, 'UNAUTHORIZED_ACCESS', undefined, HttpStatus.UNAUTHORIZED);
+    super(message, ErrorCode.UNAUTHORIZED, undefined, HttpStatus.UNAUTHORIZED);
   }
 }
 
@@ -44,7 +45,7 @@ export class RateLimitError extends DomainError {
   constructor(public readonly remainingSeconds?: number) {
     super(
       `Demasiadas solicitudes. Por favor, intente de nuevo en ${remainingSeconds || 60} segundos.`,
-      'RATE_LIMIT_EXCEEDED',
+      ErrorCode.TOO_MANY_REQUESTS,
       { retryAfter: remainingSeconds },
       HttpStatus.TOO_MANY_REQUESTS,
     );
@@ -56,7 +57,7 @@ export class ExternalServiceError extends DomainError {
   constructor(message: string = 'External service failure', details?: any) {
     super(
       message,
-      'EXTERNAL_SERVICE_ERROR',
+      ErrorCode.EXTERNAL_SERVICE_ERROR,
       details,
       HttpStatus.SERVICE_UNAVAILABLE,
     );

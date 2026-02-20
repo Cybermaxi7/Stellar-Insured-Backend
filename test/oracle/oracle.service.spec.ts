@@ -309,4 +309,24 @@ describe('OracleService', () => {
       expect(repository.update).not.toHaveBeenCalled();
     });
   });
+
+  describe('fetchProviderData', () => {
+    it('should delegate to ExternalServiceClient and return result', async () => {
+      const fakeResponse = { foo: 'bar' };
+      (service as any).externalClient = { get: jest.fn().mockResolvedValue(fakeResponse) };
+      mockConfigService.get.mockReturnValue('https://api.example.com');
+
+      const result = await service.fetchProviderData(OracleProvider.CHAINLINK, 'abc');
+      expect(result).toEqual(fakeResponse);
+      expect((service as any).externalClient.get).toHaveBeenCalledWith(
+        'https://api.example.com/data/abc',
+      );
+    });
+
+    it('should throw when no provider url is configured', async () => {
+      mockConfigService.get.mockReturnValue('');
+      await expect(service.fetchProviderData(OracleProvider.CHAINLINK, 'xyz'))
+        .rejects.toThrow(BadRequestException);
+    });
+  });
 });

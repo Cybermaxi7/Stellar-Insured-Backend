@@ -15,3 +15,6 @@ export { PaginationHelper } from './utils/pagination.helper';
 
 // Services
 export { ExternalServiceClient } from './services/external-service.client';
+
+// Utilities
+export { executeWithRetry } from './utils/error-recovery.strategy';
