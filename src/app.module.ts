@@ -7,6 +7,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigModule } from './config/config.module';
 import { AppConfigService } from './config/app-config.service';
 import { DatabaseModule } from './common/database/database.module';
+import { CommonModule } from './common/common.module';
 import { IdempotencyModule } from './common/idempotency/idempotency.module';
 import { IdempotencyInterceptor } from './common/idempotency/interceptors/idempotency.interceptor';
 import { HealthModule } from './modules/health/health.module';
@@ -63,6 +64,7 @@ import { RateLimitingModule } from './common/rate-limiting.module';
       },
       inject: [AppConfigService],
     }),
+    CommonModule,
     DatabaseModule,
     IdempotencyModule,
     ThrottlerModule.forRootAsync({
