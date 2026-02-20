@@ -330,8 +330,31 @@ export class AppConfigService {
     );
   }
 
+  get jwtRefreshSecret(): string {
+    return this.configService.get<string>(
+      'JWT_REFRESH_SECRET',
+      'my-super-secret-refresh-key-for-development-only',
+    );
+  }
+
   get jwtExpiresIn(): string {
     return this.configService.get<string>('JWT_EXPIRES_IN', '24h');
+  }
+
+  get jwtAccessTokenTtl(): string {
+    return this.configService.get<string>('JWT_ACCESS_TOKEN_TTL', '15m');
+  }
+
+  get jwtRefreshTokenTtl(): string {
+    return this.configService.get<string>('JWT_REFRESH_TOKEN_TTL', '7d');
+  }
+
+  get tokenRotationEnabled(): boolean {
+    return this.configService.get<boolean>('TOKEN_ROTATION_ENABLED', true);
+  }
+
+  get mfaRequired(): boolean {
+    return this.configService.get<boolean>('MFA_REQUIRED', false);
   }
 
   get bcryptSaltRounds(): number {
@@ -403,6 +426,74 @@ export class AppConfigService {
 
   get throttleClaimsLimit(): number {
     return this.configService.get<number>('THROTTLE_CLAIMS_LIMIT', 10);
+  }
+
+  // Advanced Rate Limiting Configuration
+  get rateLimitSlidingWindowEnabled(): boolean {
+    return this.configService.get<boolean>('RATE_LIMIT_SLIDING_WINDOW_ENABLED', true);
+  }
+
+  get rateLimitCircuitBreakerEnabled(): boolean {
+    return this.configService.get<boolean>('RATE_LIMIT_CIRCUIT_BREAKER_ENABLED', true);
+  }
+
+  get rateLimitCircuitBreakerFailureThreshold(): number {
+    return this.configService.get<number>('RATE_LIMIT_CIRCUIT_BREAKER_FAILURE_THRESHOLD', 10);
+  }
+
+  get rateLimitCircuitBreakerTimeoutMs(): number {
+    return this.configService.get<number>('RATE_LIMIT_CIRCUIT_BREAKER_TIMEOUT_MS', 300000); // 5 minutes
+  }
+
+  get rateLimitCircuitBreakerSuccessThreshold(): number {
+    return this.configService.get<number>('RATE_LIMIT_CIRCUIT_BREAKER_SUCCESS_THRESHOLD', 2);
+  }
+
+  get rateLimitMonitoringEnabled(): boolean {
+    return this.configService.get<boolean>('RATE_LIMIT_MONITORING_ENABLED', true);
+  }
+
+  // High-risk endpoints rate limits
+  get rateLimitCreateClaimTtl(): number {
+    return this.configService.get<number>('RATE_LIMIT_CREATE_CLAIM_TTL', 3600000); // 1 hour
+  }
+
+  get rateLimitCreateClaimLimit(): number {
+    return this.configService.get<number>('RATE_LIMIT_CREATE_CLAIM_LIMIT', 5);
+  }
+
+  get rateLimitCreatePolicyTtl(): number {
+    return this.configService.get<number>('RATE_LIMIT_CREATE_POLICY_TTL', 3600000); // 1 hour
+  }
+
+  get rateLimitCreatePolicyLimit(): number {
+    return this.configService.get<number>('RATE_LIMIT_CREATE_POLICY_LIMIT', 10);
+  }
+
+  get rateLimitAuthTtl(): number {
+    return this.configService.get<number>('RATE_LIMIT_AUTH_TTL', 900000); // 15 minutes
+  }
+
+  get rateLimitAuthLimit(): number {
+    return this.configService.get<number>('RATE_LIMIT_AUTH_LIMIT', 5);
+  }
+
+  // Per-user rate limits
+  get rateLimitPerUserEnabled(): boolean {
+    return this.configService.get<boolean>('RATE_LIMIT_PER_USER_ENABLED', true);
+  }
+
+  get rateLimitPerIpEnabled(): boolean {
+    return this.configService.get<boolean>('RATE_LIMIT_PER_IP_ENABLED', true);
+  }
+
+  // Redis rate limiting configuration
+  get rateLimitRedisEnabled(): boolean {
+    return this.configService.get<boolean>('RATE_LIMIT_REDIS_ENABLED', this.isProductionEnvironment);
+  }
+
+  get rateLimitRedisTtl(): number {
+    return this.configService.get<number>('RATE_LIMIT_REDIS_TTL', 3600); // 1 hour
   }
 
   // Legacy rate limiting (kept for backward compatibility)

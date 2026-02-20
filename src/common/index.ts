@@ -18,3 +18,6 @@ export { ExternalServiceClient } from './services/external-service.client';
 
 // Utilities
 export { executeWithRetry } from './utils/error-recovery.strategy';
+export { RateLimitService } from './services/rate-limit.service';
+export { MonitoringService } from './services/monitoring.service';
+export { CircuitBreakerService } from './services/circuit-breaker.service';
