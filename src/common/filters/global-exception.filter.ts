@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { ApiErrorResponse } from '../interfaces/api-response.interface';
-import { getErrorCode } from '../constants/error-codes';
+import { getErrorCode, ErrorCode } from '../constants/error-codes';
 import { DomainError } from '../errors/domain.error';
 
 
@@ -26,7 +26,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let errorCode = getErrorCode(status);
     let details: Record<string, unknown> | undefined;
 
-    if (exception instanceof HttpException) {
+    // Domain errors are thrown programmatically and already carry
+    // a suitable httpStatus / code / message. Map them directly.
+    if (exception instanceof DomainError) {
+      status = exception.httpStatus || HttpStatus.BAD_REQUEST;
+      message = exception.message;
+      errorCode = exception.code || getErrorCode(status);
+      details = exception.details;
+    } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       errorCode = getErrorCode(status);
       const exceptionResponse = exception.getResponse();
@@ -51,7 +58,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             errorField.toLowerCase().includes('validation') ||
             errorField.toLowerCase().includes('bad request')
           ) {
-            errorCode = 'VALIDATION_ERROR';
+            errorCode = ErrorCode.VALIDATION_ERROR;
           }
         }
         // Capture validation details
@@ -60,6 +67,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         }
       }
     } else {
+      // unexpected runtime error
       this.logger.error(
         `Unexpected error: ${String(exception)}`,
         exception instanceof Error ? exception.stack : undefined,
@@ -76,15 +84,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       ...(details && { details }),
     };
 
-    response.status(status).json({
-      success: false,
-      error: {
-        code,
-        message,
-        details,
-        timestamp: new Date().toISOString(),
-        path: request.url,
-      },
-    });
+    // send the constructed, standardized error object
+    response.status(status).json(errorResponse);
   }
 }

@@ -4,10 +4,10 @@ import { APP_GUARD } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { CacheModule } from '@nestjs/cache-manager';
-// import { redisStore } from 'cache-manager-redis-yet';
 import { ConfigModule } from './config/config.module';
 import { AppConfigService } from './config/app-config.service';
 import { DatabaseModule } from './common/database/database.module';
+import { CommonModule } from './common/common.module';
 import { IdempotencyModule } from './common/idempotency/idempotency.module';
 import { IdempotencyInterceptor } from './common/idempotency/interceptors/idempotency.interceptor';
 import { EncryptionModule } from './modules/encryption/encryption.module';
@@ -32,6 +32,7 @@ import { FilesController } from './modules/files/files.controller';
 import { CustomThrottlerGuard } from './common/guards/custom-throttler.guard';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { OracleModule } from './modules/oracle/oracle.module';
+import { RateLimitingModule } from './common/rate-limiting.module';
 
 @Module({
   imports: [
@@ -43,7 +44,33 @@ import { OracleModule } from './modules/oracle/oracle.module';
     // TEMPORARY: In-memory cache
     CacheModule.register({
       isGlobal: true,
+    
+    // Redis-based cache for distributed rate limiting
+    CacheModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: AppConfigService) => {
+        // Use Redis in production, in-memory for development/testing
+        if (configService.isProductionEnvironment) {
+          const redisStore = require('cache-manager-redis-yet').redisStore;
+          return {
+            isGlobal: true,
+            store: redisStore,
+            url: configService.redisUrl,
+            ttl: configService.redisTtl,
+            max: 10000,
+          };
+        } else {
+          // For development and testing environments
+          return {
+            isGlobal: true,
+            ttl: 5, // 5 seconds for dev
+            max: 10000,
+          };
+        }
+      },
+      inject: [AppConfigService],
     }),
+    CommonModule,
     DatabaseModule,
     IdempotencyModule,
     ThrottlerModule.forRootAsync({
@@ -70,6 +97,16 @@ import { OracleModule } from './modules/oracle/oracle.module';
             ttl: configService.throttleAdminTtl,
             limit: configService.throttleAdminLimit,
           },
+          {
+            name: 'claims',
+            ttl: configService.rateLimitCreateClaimTtl,
+            limit: configService.rateLimitCreateClaimLimit,
+          },
+          {
+            name: 'policies',
+            ttl: configService.rateLimitCreatePolicyTtl,
+            limit: configService.rateLimitCreatePolicyLimit,
+          },
         ],
       }),
       inject: [AppConfigService],
@@ -89,6 +126,7 @@ import { OracleModule } from './modules/oracle/oracle.module';
     AuditModule,
     DashboardModule,
     OracleModule,
+    RateLimitingModule,
   ],
   controllers: [AppController, FilesController],
   providers: [
