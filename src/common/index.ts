@@ -12,3 +12,6 @@ export * from './constants/error-codes';
 
 // Utilities
 export { PaginationHelper } from './utils/pagination.helper';
+
+// Services
+export { ExternalServiceClient } from './services/external-service.client';

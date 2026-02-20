@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException, UnauthorizedException, Logger } from '@nestjs/common';
+import { ExternalServiceClient } from '../../common/services/external-service.client';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, MoreThan, Between } from 'typeorm';
 import { OracleData } from './entities/oracle-data.entity';
@@ -16,6 +17,7 @@ export class OracleService {
     @InjectRepository(OracleData)
     private readonly oracleDataRepository: Repository<OracleData>,
     private readonly configService: AppConfigService,
+    private readonly externalClient: ExternalServiceClient,
   ) {}
 
   async ingestOracleData(provider: OracleProvider, payload: OraclePayloadDto, signature?: string): Promise<OracleData> {
@@ -194,6 +196,25 @@ export class OracleService {
         dataType,
       },
     });
+  }
+
+  /**
+   * Example call to an external oracle provider API. Retries and
+   * circuit breaker behaviour are handled by ExternalServiceClient.
+   */
+  async fetchProviderData(provider: OracleProvider, externalId: string): Promise<any> {
+    const endpoint = this.configService.get(`ORACLE_${provider.toUpperCase()}_URL`, '');
+    if (!endpoint) {
+      throw new BadRequestException(`No URL configured for provider ${provider}`);
+    }
+
+    const url = `${endpoint}/data/${externalId}`;
+    try {
+      return await this.externalClient.get(url);
+    } catch (err) {
+      // ExternalServiceClient already converts to ExternalServiceError
+      throw err;
+    }
   }
 
   private generateVerificationHash(payload: OraclePayloadDto): string {

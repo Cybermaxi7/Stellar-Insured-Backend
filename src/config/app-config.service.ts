@@ -271,6 +271,38 @@ export class AppConfigService {
     return this.configService.get<number>('REDIS_TTL', 3600);
   }
 
+  // External service retry configuration
+  get externalServiceRetryAttempts(): number {
+    return this.configService.get<number>('EXTERNAL_SERVICE_RETRY_ATTEMPTS', 3);
+  }
+
+  get externalServiceRetryDelay(): number {
+    return this.configService.get<number>('EXTERNAL_SERVICE_RETRY_DELAY', 1000);
+  }
+
+  get externalServiceMaxRetryDelay(): number {
+    return this.configService.get<number>('EXTERNAL_SERVICE_MAX_RETRY_DELAY', 30000);
+  }
+
+  // Circuit breaker configuration for outgoing HTTP calls
+  get circuitBreakerEnabled(): boolean {
+    return this.configService.get<boolean>('CIRCUIT_BREAKER_ENABLED', true);
+  }
+
+  get circuitBreakerTimeout(): number {
+    return this.configService.get<number>('CIRCUIT_BREAKER_TIMEOUT', 5000);
+  }
+
+  get circuitBreakerErrorThreshold(): number {
+    // percentage of failed requests before opening
+    return this.configService.get<number>('CIRCUIT_BREAKER_ERROR_THRESHOLD', 50);
+  }
+
+  get circuitBreakerResetTimeout(): number {
+    // time after which breaker will attempt to half-open
+    return this.configService.get<number>('CIRCUIT_BREAKER_RESET_TIMEOUT', 30000);
+  }
+
   // Stellar Configuration
   get stellarNetwork(): string {
     return this.configService.get<string>('STELLAR_NETWORK', 'testnet');

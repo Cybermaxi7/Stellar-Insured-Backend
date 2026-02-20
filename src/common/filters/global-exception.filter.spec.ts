@@ -198,4 +198,36 @@ describe('GlobalExceptionFilter', () => {
       expect(errorResponse.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
     });
   });
-});
+  describe('DomainError handling', () => {
+    it('should map EntityNotFoundError to 404 with correct code', () => {
+      const domainError = new EntityNotFoundError('User', '123');
+
+      filter.catch(domainError, mockArgumentsHost as ArgumentsHost);
+      const err = (mockResponse.json as jest.Mock).mock.calls[0][0] as ApiErrorResponse;
+
+      expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
+      expect(err.errorCode).toBe('ENTITY_NOT_FOUND');
+      expect(err.message).toContain('User');
+    });
+
+    it('should propagate details from RateLimitError', () => {
+      const rateError = new DomainError('Rate limited', 'RATE_LIMIT_EXCEEDED', { retryAfter: 30 }, HttpStatus.TOO_MANY_REQUESTS);
+
+      filter.catch(rateError, mockArgumentsHost as ArgumentsHost);
+      const err = (mockResponse.json as jest.Mock).mock.calls[0][0] as ApiErrorResponse;
+
+      expect(err.details).toEqual({ retryAfter: 30 });
+      expect(err.statusCode).toBe(HttpStatus.TOO_MANY_REQUESTS);
+    });
+
+    it('should handle ExternalServiceError as service unavailable', () => {
+      const extError = new ExternalServiceError('Downstream api offline');
+
+      filter.catch(extError, mockArgumentsHost as ArgumentsHost);
+      const err = (mockResponse.json as jest.Mock).mock.calls[0][0] as ApiErrorResponse;
+
+      expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.SERVICE_UNAVAILABLE);
+      expect(err.errorCode).toBe('EXTERNAL_SERVICE_ERROR');
+      expect(err.message).toBe('Downstream api offline');
+    });
+  });});
