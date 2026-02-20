@@ -4,6 +4,7 @@ import { ArgumentsHost, Logger } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { GlobalExceptionFilter } from './global-exception.filter';
 import { ApiErrorResponse } from '../interfaces/api-response.interface';
+import { DomainError, EntityNotFoundError, ExternalServiceError } from '../errors/domain.error';
 
 describe('GlobalExceptionFilter', () => {
   let filter: GlobalExceptionFilter;
