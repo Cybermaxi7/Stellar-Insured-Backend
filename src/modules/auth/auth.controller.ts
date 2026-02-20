@@ -33,6 +33,25 @@ import { Request } from 'express';
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
+  constructor(private readonly authService: AuthService) { }
+
+  @Public()
+  @Post('register')
+  @ApiOperation({ summary: 'Register a new user with email and password' })
+  @ApiResponse({ status: 201, description: 'User registered successfully' })
+  @HttpCode(HttpStatus.CREATED)
+  async register(@Body() dto: RegisterDto) {
+    return this.authService.register(dto);
+  }
+
+  @Public()
+  @Post('login/password')
+  @ApiOperation({ summary: 'Login with email and password' })
+  @ApiResponse({ status: 200, description: 'Login successful, JWT issued' })
+  @HttpCode(HttpStatus.OK)
+  async loginWithPassword(@Body() dto: LoginPasswordDto) {
+    return this.authService.loginWithPassword(dto);
+  }
   constructor(
     private readonly authService: AuthService,
     private readonly mfaService: MfaService,

@@ -10,6 +10,7 @@ import { DatabaseModule } from './common/database/database.module';
 import { CommonModule } from './common/common.module';
 import { IdempotencyModule } from './common/idempotency/idempotency.module';
 import { IdempotencyInterceptor } from './common/idempotency/interceptors/idempotency.interceptor';
+import { EncryptionModule } from './modules/encryption/encryption.module';
 import { HealthModule } from './modules/health/health.module';
 import { ClaimsModule } from './modules/claims/claims.module';
 import { PolicyModule } from './modules/policy/policy.module';
@@ -38,6 +39,11 @@ import { RateLimitingModule } from './common/rate-limiting.module';
     EventEmitterModule.forRoot(),
     ConfigModule,
     HealthModule,
+    EncryptionModule,
+
+    // TEMPORARY: In-memory cache
+    CacheModule.register({
+      isGlobal: true,
     
     // Redis-based cache for distributed rate limiting
     CacheModule.registerAsync({
@@ -117,6 +123,7 @@ import { RateLimitingModule } from './common/rate-limiting.module';
     PaymentsModule,
     QueueModule,
     AuditLogModule,
+    AuditModule,
     DashboardModule,
     OracleModule,
     RateLimitingModule,
@@ -142,4 +149,4 @@ import { RateLimitingModule } from './common/rate-limiting.module';
     }
   ],
 })
-export class AppModule {}
+export class AppModule { }
