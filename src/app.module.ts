@@ -10,6 +10,7 @@ import { AppConfigService } from './config/app-config.service';
 import { DatabaseModule } from './common/database/database.module';
 import { IdempotencyModule } from './common/idempotency/idempotency.module';
 import { IdempotencyInterceptor } from './common/idempotency/interceptors/idempotency.interceptor';
+import { EncryptionModule } from './modules/encryption/encryption.module';
 import { HealthModule } from './modules/health/health.module';
 import { ClaimsModule } from './modules/claims/claims.module';
 import { PolicyModule } from './modules/policy/policy.module';
@@ -37,7 +38,8 @@ import { OracleModule } from './modules/oracle/oracle.module';
     EventEmitterModule.forRoot(),
     ConfigModule,
     HealthModule,
-    
+    EncryptionModule,
+
     // TEMPORARY: In-memory cache
     CacheModule.register({
       isGlobal: true,
@@ -84,6 +86,7 @@ import { OracleModule } from './modules/oracle/oracle.module';
     PaymentsModule,
     QueueModule,
     AuditLogModule,
+    AuditModule,
     DashboardModule,
     OracleModule,
   ],
@@ -108,4 +111,4 @@ import { OracleModule } from './modules/oracle/oracle.module';
     }
   ],
 })
-export class AppModule {}
+export class AppModule { }

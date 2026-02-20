@@ -6,9 +6,32 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
 import { AppValidationPipe } from './common/pipes/validation.pipe';
 import { QueueService } from './modules/queue/queue.service';
 import helmet from 'helmet';
+import * as fs from 'fs';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  // Load configuration first to check for HTTPS
+  const tempApp = await NestFactory.create(AppModule, { logger: false });
+  const configService = tempApp.get(ConfigService);
+
+  const httpsKeyPath = configService.get<string>('HTTPS_KEY_PATH');
+  const httpsCertPath = configService.get<string>('HTTPS_CERT_PATH');
+
+  let httpsOptions = null;
+  if (httpsKeyPath && httpsCertPath) {
+    try {
+      httpsOptions = {
+        key: fs.readFileSync(httpsKeyPath),
+        cert: fs.readFileSync(httpsCertPath),
+      };
+      console.log('HTTPS configuration detected and loaded.');
+    } catch (error) {
+      console.error('Failed to load HTTPS certificates:', error.message);
+    }
+  }
+
+  await tempApp.close();
+
+  const app = await NestFactory.create(AppModule, { httpsOptions });
 
   // Get configuration service
   const configService = app.get(ConfigService);
