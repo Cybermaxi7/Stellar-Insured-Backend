@@ -12,6 +12,7 @@ import { IdempotencyModule } from './common/idempotency/idempotency.module';
 import { IdempotencyInterceptor } from './common/idempotency/interceptors/idempotency.interceptor';
 import { EncryptionModule } from './modules/encryption/encryption.module';
 import { HealthModule } from './modules/health/health.module';
+import { CachingModule } from './common/caching/caching.module';
 import { ClaimsModule } from './modules/claims/claims.module';
 import { PolicyModule } from './modules/policy/policy.module';
 import { DaoModule } from './modules/dao/dao.module';
@@ -40,11 +41,8 @@ import { RateLimitingModule } from './common/rate-limiting.module';
     ConfigModule,
     HealthModule,
     EncryptionModule,
+    CachingModule,
 
-    // TEMPORARY: In-memory cache
-    CacheModule.register({
-      isGlobal: true,
-    
     // Redis-based cache for distributed rate limiting
     CacheModule.registerAsync({
       imports: [ConfigModule],

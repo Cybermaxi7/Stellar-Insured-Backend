@@ -271,6 +271,23 @@ export class AppConfigService {
     return this.configService.get<number>('REDIS_TTL', 3600);
   }
 
+  get redisDb(): number {
+    return this.configService.get<number>('REDIS_DB', 0);
+  }
+
+  // Cache Configuration
+  get cacheDefaultTtl(): number {
+    return this.configService.get<number>('CACHE_DEFAULT_TTL', 300); // 5 minutes
+  }
+
+  get cacheMaxItems(): number {
+    return this.configService.get<number>('CACHE_MAX_ITEMS', 10000);
+  }
+
+  get cacheKeyPrefix(): string {
+    return this.configService.get<string>('CACHE_KEY_PREFIX', 'app_cache:');
+  }
+
   // External service retry configuration
   get externalServiceRetryAttempts(): number {
     return this.configService.get<number>('EXTERNAL_SERVICE_RETRY_ATTEMPTS', 3);

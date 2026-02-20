@@ -33,16 +33,16 @@ async function bootstrap(): Promise<void> {
 
   const app = await NestFactory.create(AppModule, { httpsOptions });
 
-  // Get configuration service
-  const configService = app.get(ConfigService);
+  // Get configuration service from the new app instance
+  const appConfigService = app.get(ConfigService);
   // queueService is available for manual use if needed, but we rely on lifecycle hooks now
   const queueService = app.get(QueueService);
 
   // Enable CORS
-  const corsOrigin = configService.get<string>('CORS_ORIGIN');
+  const corsOrigin = appConfigService.get<string>('CORS_ORIGIN');
   app.enableCors({
     origin: corsOrigin ? corsOrigin.split(',') : '*',
-    credentials: configService.get<boolean>('CORS_CREDENTIALS', true),
+    credentials: appConfigService.get<boolean>('CORS_CREDENTIALS', true),
   });
 
   // Security middleware
@@ -62,31 +62,31 @@ async function bootstrap(): Promise<void> {
   app.enableShutdownHooks();
 
   // Swagger setup
-  if (configService.get<boolean>('SWAGGER_ENABLED', true)) {
+  if (appConfigService.get<boolean>('SWAGGER_ENABLED', true)) {
     const config = new DocumentBuilder()
       .setTitle('Stellar Insured API')
       .setDescription('API documentation for Stellar Insured backend')
-      .setVersion(configService.get<string>('APP_VERSION', '1.0'))
+      .setVersion(appConfigService.get<string>('APP_VERSION', '1.0'))
       .addBearerAuth()
       .build();
 
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup(
-      configService.get<string>('SWAGGER_PATH', '/api/docs'),
+      appConfigService.get<string>('SWAGGER_PATH', '/api/docs'),
       app,
       document,
     );
   }
 
   // Get port from config
-  const port = configService.get<number>('PORT', 4000);
+  const port = appConfigService.get<number>('PORT', 4000);
 
   await app.listen(port);
 
   // Log startup information
   /* eslint-disable no-console */
   console.log(`\n Application is running on: http://localhost:${port}`);
-  console.log(` Environment: ${configService.get('NODE_ENV', 'development')}`);
+  console.log(` Environment: ${appConfigService.get('NODE_ENV', 'development')}`);
   console.log(`📋 Swagger UI: http://localhost:${port}/api/docs`);
   /* eslint-enable no-console */
 }
