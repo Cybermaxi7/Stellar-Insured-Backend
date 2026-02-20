@@ -5,6 +5,7 @@ import { Response, Request } from 'express';
 import { GlobalExceptionFilter } from './global-exception.filter';
 import { ApiErrorResponse } from '../interfaces/api-response.interface';
 import { DomainError, EntityNotFoundError, ExternalServiceError } from '../errors/domain.error';
+import { ErrorCode } from '../constants/error-codes';
 
 describe('GlobalExceptionFilter', () => {
   let filter: GlobalExceptionFilter;
@@ -138,6 +139,37 @@ describe('GlobalExceptionFilter', () => {
 
       expect(errorResponse.statusCode).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
       expect(errorResponse.errorCode).toBe('INTERNAL_SERVER_ERROR');
+    });
+  });
+
+  describe('DomainError handling', () => {
+    it('should translate DomainError to correct status and code', () => {
+      const domainErr = new DomainError('Test message', ErrorCode.UNAUTHORIZED, { foo: 'bar' }, HttpStatus.UNAUTHORIZED);
+      // override name to avoid abstract error
+      domainErr.name = 'CustomDomainError';
+
+      filter.catch(domainErr, mockArgumentsHost as ArgumentsHost);
+      const errorResponse = (mockResponse.json as jest.Mock).mock.calls[0][0] as ApiErrorResponse;
+
+      expect(errorResponse.statusCode).toBe(HttpStatus.UNAUTHORIZED);
+      expect(errorResponse.errorCode).toBe(ErrorCode.UNAUTHORIZED);
+      expect(errorResponse.details).toEqual({ foo: 'bar' });
+    });
+
+    it('should map specific DomainError subclasses correctly', () => {
+      const notFound = new EntityNotFoundError('Thing', '123');
+      filter.catch(notFound, mockArgumentsHost as ArgumentsHost);
+      const resp = (mockResponse.json as jest.Mock).mock.calls[0][0] as ApiErrorResponse;
+      expect(resp.statusCode).toBe(HttpStatus.NOT_FOUND);
+      expect(resp.errorCode).toBe(ErrorCode.RESOURCE_NOT_FOUND);
+    });
+
+    it('should handle ExternalServiceError specially', () => {
+      const extErr = new ExternalServiceError('downstream down');
+      filter.catch(extErr, mockArgumentsHost as ArgumentsHost);
+      const resp = (mockResponse.json as jest.Mock).mock.calls[0][0] as ApiErrorResponse;
+      expect(resp.statusCode).toBe(HttpStatus.SERVICE_UNAVAILABLE);
+      expect(resp.errorCode).toBe(ErrorCode.EXTERNAL_SERVICE_ERROR);
     });
   });
 

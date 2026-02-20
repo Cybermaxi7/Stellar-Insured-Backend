@@ -9,7 +9,7 @@ This document enumerates the standardized error codes used throughout the backen
 | 401         | `UNAUTHORIZED`           | Authentication required / invalid credentials      |
 | 403         | `FORBIDDEN`              | Insufficient permissions                           |
 | 404         | `NOT_FOUND`              | Resource not found                                 |
-| 404         | `ENTITY_NOT_FOUND`       | Entity-specific not found (domain error)          |
+| 404         | `RESOURCE_NOT_FOUND`     | Entity-specific not found (domain error)          |
 | 409         | `CONFLICT`               | Conflict occurred (e.g. duplicate resource)        |
 | 422         | `UNPROCESSABLE_ENTITY`   | Semantic errors / business rule violation         |
 | 429         | `TOO_MANY_REQUESTS`      | Rate limit exceeded                                |
