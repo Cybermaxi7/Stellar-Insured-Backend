@@ -3,6 +3,8 @@ import {
   ExecutionContext,
   HttpException,
   HttpStatus,
+  Logger,
+  Inject,
 } from '@nestjs/common';
 import {
   ThrottlerGuard,
@@ -10,6 +12,10 @@ import {
   ThrottlerRequest,
 } from '@nestjs/throttler';
 import { Request, Response } from 'express';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { MonitoringService } from '../services/monitoring.service';
+import { CircuitBreakerService, CircuitBreakerOptions } from '../services/circuit-breaker.service';
 
 /**
  * Custom throttler guard that extends the default ThrottlerGuard
@@ -54,8 +60,17 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
     return `ip:${req.ip || req.socket?.remoteAddress || 'unknown'}`;
   }
 
+  constructor(
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    private readonly monitoringService: MonitoringService,
+    private readonly circuitBreakerService: CircuitBreakerService,
+    ...args: ConstructorParameters<typeof ThrottlerGuard>
+  ) {
+    super(...args);
+  }
+
   /**
-   * Called after each throttle check. Adds rate limit headers to response.
+   * Enhanced handleRequest with sliding window algorithm and circuit breaker
    */
   protected async handleRequest(
     requestProps: ThrottlerRequest,
@@ -99,10 +114,45 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
       `${limit};w=${Math.ceil(ttl / 1000)}`,
     );
 
+    // Record the request in monitoring
+    await this.monitoringService.recordRateLimitRequest(tracker, request.path, totalHits <= limit);
+
+    // Check if circuit breaker is open for this tracker
+    const circuitOptions: CircuitBreakerOptions = {
+      failureThreshold: 10, // This could be made configurable
+      timeoutMs: 300000, // 5 minutes - could be made configurable
+      successThreshold: 2, // This could be made configurable
+      name: `rate_limit_${tracker}`,
+    };
+
+    const canExecute = await this.circuitBreakerService.canExecute(tracker, circuitOptions);
+    if (!canExecute) {
+      // Circuit breaker is open, reject request
+      response.setHeader('X-Circuit-Breaker', 'open');
+      
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.SERVICE_UNAVAILABLE,
+          error: 'Service Unavailable',
+          message: 'Service temporarily unavailable due to high load',
+          path: request.path,
+          timestamp: new Date().toISOString(),
+          tracker,
+        },
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+
     // Check if limit exceeded
     if (totalHits > limit) {
+      // Increment violation counter
+      await this.recordRateLimitViolation(tracker, request.path);
+      
       const retryAfter = Math.ceil(timeToExpire / 1000);
       response.setHeader('Retry-After', retryAfter);
+
+      // Record failure to circuit breaker
+      await this.circuitBreakerService.onFailure(tracker, circuitOptions);
 
       throw new HttpException(
         {
@@ -112,11 +162,59 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
           retryAfter,
           path: request.path,
           timestamp: new Date().toISOString(),
+          tracker,
         },
         HttpStatus.TOO_MANY_REQUESTS,
       );
+    } else {
+      // Request is allowed, record success to circuit breaker
+      await this.circuitBreakerService.onSuccess(tracker, circuitOptions);
     }
 
     return true;
+  }
+
+  /**
+   * Records rate limit violations for monitoring
+   */
+  private async recordRateLimitViolation(tracker: string, path: string): Promise<void> {
+    // Use monitoring service to record violation
+    await this.monitoringService.recordRateLimitViolation(tracker, path, {
+      tracker,
+      path,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Also maintain legacy tracking for circuit breaker
+    const violationKey = `rate_limit_violation:${tracker}:${new Date().toISOString().split('T')[0]}`;
+    const currentCount = (await this.cacheManager.get<number>(violationKey)) || 0;
+    await this.cacheManager.set(violationKey, currentCount + 1, 86400); // 24 hours
+  }
+
+  /**
+   * Gets violation count for a tracker
+   */
+  private async getViolationCount(tracker: string): Promise<number> {
+    const violationKey = `rate_limit_violation:${tracker}:${new Date().toISOString().split('T')[0]}`;
+    return (await this.cacheManager.get<number>(violationKey)) || 0;
+  }
+
+  /**
+   * Activates circuit breaker for a tracker
+   */
+  private async activateCircuitBreaker(tracker: string, path: string): Promise<void> {
+    const circuitKey = `circuit_breaker:${tracker}`;
+    const expiration = 300; // 5 minutes
+    await this.cacheManager.set(circuitKey, true, expiration);
+    
+    Logger.warn(`Circuit breaker activated for ${tracker} on path ${path}`, 'CustomThrottlerGuard');
+  }
+
+  /**
+   * Checks if circuit breaker is active for a tracker
+   */
+  private async isCircuitBreakerActive(tracker: string): Promise<boolean> {
+    const circuitKey = `circuit_breaker:${tracker}`;
+    return !!(await this.cacheManager.get(circuitKey));
   }
 }
