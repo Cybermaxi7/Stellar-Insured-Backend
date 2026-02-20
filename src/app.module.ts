@@ -30,6 +30,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
 import { FilesController } from './modules/files/files.controller';
 import { CustomThrottlerGuard } from './common/guards/custom-throttler.guard';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { OracleModule } from './modules/oracle/oracle.module';
 
 @Module({
   imports: [
@@ -84,6 +85,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     QueueModule,
     AuditLogModule,
     DashboardModule,
+    OracleModule,
   ],
   controllers: [AppController, FilesController],
   providers: [
