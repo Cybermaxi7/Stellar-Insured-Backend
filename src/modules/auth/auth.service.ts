@@ -2,7 +2,6 @@ import {
   Inject,
   Injectable,
   UnauthorizedException,
-  NotFoundException,
   BadRequestException,
   Logger,
 } from '@nestjs/common';
@@ -18,6 +17,10 @@ import { SessionService } from './services/session.service';
 import { MfaService } from './services/mfa.service';
 import * as crypto from 'crypto';
 import { Keypair } from 'stellar-sdk';
+import { ChallengeNotFoundException } from './exceptions/challenge-not-found.exception';
+import { ChallengeExpiredException } from './exceptions/challenge-expired.exception';
+import { InvalidSignatureException } from './exceptions/invalid-signature.exception';
+import { UserNotFoundException } from './exceptions/user-not-found.exception';
 
 export interface LoginResponse {
   accessToken: string;
@@ -100,7 +103,7 @@ export class AuthService {
     const cached: any = await this.cacheManager.get(key);
 
     if (!cached) {
-      throw new NotFoundException('Challenge not found or expired');
+      throw new ChallengeNotFoundException(walletAddress);
     }
 
     const { message, timestamp } = cached;
@@ -110,39 +113,38 @@ export class AuthService {
     if (currentTimestamp - timestamp > 300) {
       // 300 seconds = 5 mins
       await this.incrementFailure(walletAddress);
-      throw new BadRequestException('Challenge expired (5 minute window)');
+      throw new ChallengeExpiredException();
     }
 
-    // Verify Signature
+    // Verify Signature — keep the SDK call in its own try block so SDK
+    // errors (e.g. malformed key) are isolated from the validity check.
+    let isValid = false;
     try {
       const keypair = Keypair.fromPublicKey(walletAddress);
-
       const messageBuffer = Buffer.from(message);
       const signatureBuffer = Buffer.from(signature, 'base64');
-
-      const isValid = keypair.verify(messageBuffer, signatureBuffer);
-
-      if (!isValid) {
-        await this.incrementFailure(walletAddress);
-        this.logger.warn(`Invalid signature for wallet ${walletAddress}`);
-        throw new UnauthorizedException('Invalid signature');
-      }
+      isValid = keypair.verify(messageBuffer, signatureBuffer);
     } catch (error: any) {
       await this.incrementFailure(walletAddress);
       this.logger.error(
-        `Signature verification failed for ${walletAddress}: ${error.message}`,
+        `Signature verification error for ${walletAddress}: ${error.message}`,
       );
+      throw new InvalidSignatureException(
+        `Signature verification error: ${error.message}`,
+      );
+    }
 
-      throw new UnauthorizedException(
-        'Signature verification failed: ' + error.message,
-      );
+    if (!isValid) {
+      await this.incrementFailure(walletAddress);
+      this.logger.warn(`Invalid signature for wallet ${walletAddress}`);
+      throw new InvalidSignatureException();
     }
 
     // Check User
     const user = await this.usersService.findByWalletAddress(walletAddress);
     if (!user) {
       this.logger.warn(`Wallet ${walletAddress} not registered`);
-      throw new NotFoundException('User not found. Wallet not registered.');
+      throw new UserNotFoundException(walletAddress);
     }
 
     // Invalidate Nonce (Replay Attack Prevention)
