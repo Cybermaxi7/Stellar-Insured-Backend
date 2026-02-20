@@ -2,7 +2,6 @@ import { ExternalServiceClient } from './external-service.client';
 import { AppConfigService } from '../../config/app-config.service';
 import { ExternalServiceError } from '../errors/domain.error';
 import axios, { AxiosRequestConfig } from 'axios';
-import CircuitBreaker from 'opossum';
 
 describe('ExternalServiceClient', () => {
   let client: ExternalServiceClient;

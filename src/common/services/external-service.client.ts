@@ -9,7 +9,7 @@ import { ExternalServiceError } from '../errors/domain.error';
 export class ExternalServiceClient {
   private readonly logger = new Logger(ExternalServiceClient.name);
   private readonly httpClient: AxiosInstance;
-  private readonly breaker: CircuitBreaker<[AxiosRequestConfig], AxiosResponse>;
+  private readonly breaker: any; // opossum circuit breaker instance (loosely typed)
 
   constructor(private config: AppConfigService) {
     this.httpClient = axios.create();

@@ -86,6 +86,13 @@ npm run test:cov
 
 Swagger UI: http://localhost:4000/api/docs
 
+⚠️ **Error Handling**
+
+All endpoints return standardized error responses. Clients should inspect the
+`errorCode` field (see `ERROR_CODES.md`) and present the accompanying
+`message` to users. Transient failures are automatically retried by internal
+clients and downstream circuits prevent cascading outages.
+
 🤝 Contributing
 
 Fork the repository

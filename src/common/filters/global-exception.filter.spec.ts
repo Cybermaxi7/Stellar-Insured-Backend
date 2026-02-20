@@ -206,7 +206,7 @@ describe('GlobalExceptionFilter', () => {
       const err = (mockResponse.json as jest.Mock).mock.calls[0][0] as ApiErrorResponse;
 
       expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
-      expect(err.errorCode).toBe('ENTITY_NOT_FOUND');
+      expect(err.errorCode).toBe('RESOURCE_NOT_FOUND');
       expect(err.message).toContain('User');
     });
 
