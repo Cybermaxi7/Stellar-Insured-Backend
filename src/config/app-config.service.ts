@@ -111,6 +111,26 @@ export class AppConfigService {
     return this.configService.get<number>('DATABASE_POOL_CONNECTION_TIMEOUT', 2000);
   }
 
+  get databasePoolAcquireTimeout(): number {
+    return this.configService.get<number>('DATABASE_POOL_ACQUIRE_TIMEOUT', 60000);
+  }
+
+  get databasePoolCreateTimeout(): number {
+    return this.configService.get<number>('DATABASE_POOL_CREATE_TIMEOUT', 30000);
+  }
+
+  get databasePoolDestroyTimeout(): number {
+    return this.configService.get<number>('DATABASE_POOL_DESTROY_TIMEOUT', 5000);
+  }
+
+  get databasePoolReapInterval(): number {
+    return this.configService.get<number>('DATABASE_POOL_REAP_INTERVAL', 1000);
+  }
+
+  get databasePoolCreateRetryInterval(): number {
+    return this.configService.get<number>('DATABASE_POOL_CREATE_RETRY_INTERVAL', 200);
+  }
+
   // Database Retry Configuration
   get databaseRetryAttempts(): number {
     return this.configService.get<number>('DATABASE_RETRY_ATTEMPTS', 3);
@@ -122,6 +142,89 @@ export class AppConfigService {
 
   get databaseMaxRetryDelay(): number {
     return this.configService.get<number>('DATABASE_MAX_RETRY_DELAY', 30000);
+  }
+
+  // Environment-specific database configurations
+  get isProductionEnvironment(): boolean {
+    return this.isProduction;
+  }
+
+  get isDevelopmentEnvironment(): boolean {
+    return this.isDevelopment;
+  }
+
+  get isTestEnvironment(): boolean {
+    return this.isTest;
+  }
+
+  // Production-optimized settings
+  get productionDatabasePoolMin(): number {
+    return this.configService.get<number>('DATABASE_POOL_MIN_PROD', 10);
+  }
+
+  get productionDatabasePoolMax(): number {
+    return this.configService.get<number>('DATABASE_POOL_MAX_PROD', 50);
+  }
+
+  get productionQueryTimeout(): number {
+    return this.configService.get<number>('DATABASE_QUERY_TIMEOUT_PROD', 30000);
+  }
+
+  // Development-optimized settings
+  get developmentDatabasePoolMin(): number {
+    return this.configService.get<number>('DATABASE_POOL_MIN_DEV', 2);
+  }
+
+  get developmentDatabasePoolMax(): number {
+    return this.configService.get<number>('DATABASE_POOL_MAX_DEV', 5);
+  }
+
+  get developmentQueryTimeout(): number {
+    return this.configService.get<number>('DATABASE_QUERY_TIMEOUT_DEV', 10000);
+  }
+
+  // Staging-optimized settings
+  get stagingDatabasePoolMin(): number {
+    return this.configService.get<number>('DATABASE_POOL_MIN_STAGING', 5);
+  }
+
+  get stagingDatabasePoolMax(): number {
+    return this.configService.get<number>('DATABASE_POOL_MAX_STAGING', 15);
+  }
+
+  get stagingQueryTimeout(): number {
+    return this.configService.get<number>('DATABASE_QUERY_TIMEOUT_STAGING', 20000);
+  }
+
+  // Environment-aware pool configuration
+  get environmentAwarePoolMin(): number {
+    if (this.isProduction) {
+      return this.productionDatabasePoolMin;
+    } else if (this.isDevelopment) {
+      return this.developmentDatabasePoolMin;
+    } else {
+      return this.stagingDatabasePoolMin;
+    }
+  }
+
+  get environmentAwarePoolMax(): number {
+    if (this.isProduction) {
+      return this.productionDatabasePoolMax;
+    } else if (this.isDevelopment) {
+      return this.developmentDatabasePoolMax;
+    } else {
+      return this.stagingDatabasePoolMax;
+    }
+  }
+
+  get environmentAwareQueryTimeout(): number {
+    if (this.isProduction) {
+      return this.productionQueryTimeout;
+    } else if (this.isDevelopment) {
+      return this.developmentQueryTimeout;
+    } else {
+      return this.stagingQueryTimeout;
+    }
   }
 
   // Database Logging Configuration

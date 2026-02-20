@@ -70,4 +70,32 @@ export class HealthController {
   async checkQueues() {
     return this.healthService.checkQueues();
   }
+
+  @Get('database')
+  @ApiOperation({ summary: 'Database health check endpoint' })
+  @ApiResponse({
+    status: 200,
+    description: 'Database health and performance metrics',
+    schema: {
+      example: {
+        status: 'healthy',
+        timestamp: '2026-01-22T00:00:00.000Z',
+        connectionPool: {
+          total: 10,
+          active: 3,
+          idle: 7,
+          waiting: 0,
+        },
+        responseTime: {
+          average: 45,
+          p95: 120,
+          p99: 200,
+        },
+        errorRate: 0.1,
+      },
+    },
+  })
+  async checkDatabase() {
+    return this.healthService.checkDatabase();
+  }
 }
