@@ -11,8 +11,30 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { UsersService } from '../users/users.service';
 import { User } from '../users/entities/user.entity';
+import { JwtTokenService } from './services/jwt-token.service';
+import { RefreshTokenService } from './services/refresh-token.service';
+import { TokenBlacklistService } from './services/token-blacklist.service';
+import { SessionService } from './services/session.service';
+import { MfaService } from './services/mfa.service';
 import * as crypto from 'crypto';
 import { Keypair } from 'stellar-sdk';
+
+export interface LoginResponse {
+  accessToken: string;
+  refreshToken: string;
+  sessionToken?: string;
+  tokenType: 'Bearer';
+  expiresIn: number;
+  expiresAt: Date;
+  user: {
+    id: string;
+    walletAddress: string;
+    email?: string;
+    roles: string[];
+  };
+  mfaRequired?: boolean;
+  sessionId?: string;
+}
 
 @Injectable()
 export class AuthService {
@@ -21,6 +43,11 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private jwtTokenService: JwtTokenService,
+    private refreshTokenService: RefreshTokenService,
+    private tokenBlacklistService: TokenBlacklistService,
+    private sessionService: SessionService,
+    private mfaService: MfaService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
@@ -49,7 +76,12 @@ export class AuthService {
     };
   }
 
-  async login(walletAddress: string, signature: string) {
+  async login(
+    walletAddress: string,
+    signature: string,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<LoginResponse> {
     this.logger.log(`Login attempt for wallet ${walletAddress}`);
 
     // Check Lockout
@@ -120,8 +152,155 @@ export class AuthService {
 
     this.logger.log(`Login successful for user ${user.id} (${walletAddress})`);
 
-    // Generate Tokens
-    return this.generateTokens(user);
+    // Generate tokens and session
+    return this.generateTokens(user, ipAddress, userAgent);
+  }
+
+  /**
+   * Refresh access token using refresh token
+   */
+  async refreshAccessToken(refreshToken: string): Promise<{
+    accessToken: string;
+    expiresIn: number;
+    expiresAt: Date;
+    tokenType: 'Bearer';
+  }> {
+    this.logger.log('Attempting to refresh access token');
+
+    // Validate refresh token
+    const storedRefreshToken =
+      await this.refreshTokenService.validateRefreshToken(refreshToken);
+
+    const user = storedRefreshToken.user;
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Generate new access token
+    const { token, expiresAt, expiresIn } =
+      this.jwtTokenService.generateAccessToken(
+        user,
+        storedRefreshToken.id,
+      );
+
+    // Update last used timestamp
+    await this.refreshTokenService.updateLastUsed(
+      refreshToken,
+    );
+
+    // Optionally rotate refresh token
+    // const newRefreshToken = await this.refreshTokenService.rotateRefreshToken(
+    //   refreshToken,
+    //   user.id,
+    // );
+
+    this.logger.log(`Access token refreshed for user ${user.id}`);
+
+    return {
+      accessToken: token,
+      expiresIn,
+      expiresAt,
+      tokenType: 'Bearer',
+    };
+  }
+
+  /**
+   * Logout user - revoke tokens and sessions
+   */
+  async logout(
+    userId: string,
+    refreshToken?: string,
+    sessionToken?: string,
+    logoutAll?: boolean,
+  ): Promise<void> {
+    this.logger.log(`Logout initiated for user ${userId}`);
+
+    if (logoutAll) {
+      // Revoke all refresh tokens
+      await this.refreshTokenService.revokeAllUserTokens(
+        userId,
+        'User logged out from all devices',
+      );
+
+      // Revoke all sessions
+      await this.sessionService.revokeAllUserSessions(
+        userId,
+        'User logged out from all devices',
+      );
+    } else {
+      // Revoke specific refresh token
+      if (refreshToken) {
+        try {
+          await this.refreshTokenService.revokeToken(
+            refreshToken,
+            'User logged out',
+          );
+        } catch (error) {
+          this.logger.warn(`Failed to revoke refresh token: ${error.message}`);
+        }
+      }
+
+      // Revoke specific session
+      if (sessionToken) {
+        try {
+          const session =
+            await this.sessionService.getSessionByToken(sessionToken);
+          await this.sessionService.revokeSession(
+            session.id,
+            'User logged out',
+          );
+        } catch (error) {
+          this.logger.warn(`Failed to revoke session: ${error.message}`);
+        }
+      }
+    }
+
+    this.logger.log(`Logout completed for user ${userId}`);
+  }
+
+  /**
+   * Verify MFA code and update session
+   */
+  async verifyMfa(
+    userId: string,
+    code: string,
+    sessionToken: string,
+    isBackupCode: boolean = false,
+  ): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    this.logger.log(`MFA verification attempt for user ${userId}`);
+
+    // Validate session
+    const session = await this.sessionService.getSessionByToken(sessionToken);
+
+    if (session.userId !== userId) {
+      throw new UnauthorizedException('Session user mismatch');
+    }
+
+    let isValid = false;
+
+    if (isBackupCode) {
+      isValid = await this.mfaService.verifyBackupCode(userId, code);
+    } else {
+      isValid = await this.mfaService.verifyTotp(userId, code);
+    }
+
+    if (!isValid) {
+      throw new BadRequestException('Invalid MFA code');
+    }
+
+    // Mark session as MFA verified
+    await this.sessionService.markMfaVerified(sessionToken);
+
+    this.logger.log(`MFA verified for user ${userId}`);
+
+    return {
+      success: true,
+      message: 'MFA verification successful',
+    };
   }
 
   private async incrementFailure(walletAddress: string) {
@@ -132,29 +311,51 @@ export class AuthService {
     await this.cacheManager.set(lockoutKey, failures, ttl);
   }
 
-  private async generateTokens(user: User) {
-    const payload = {
-      sub: user.id,
-      walletAddress: user.walletAddress,
-      email: user.email,
-      roles: user.roles,
-    };
+  private async generateTokens(
+    user: User,
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<LoginResponse> {
+    // Create session
+    const { session, sessionToken } = await this.sessionService.createSession({
+      userId: user.id,
+      ipAddress,
+      userAgent,
+    });
 
-    const accessToken = this.jwtService.sign(payload);
+    // Generate access token
+    const { token: accessToken, expiresAt: accessTokenExpiresAt, expiresIn: accessTokenExpiresIn } =
+      this.jwtTokenService.generateAccessToken(user, session.id);
+
+    // Generate refresh token
+    const { token: refreshToken } =
+      await this.refreshTokenService.createRefreshToken(user.id, session.id);
 
     // Update last login
     await this.usersService.updateLastLogin(user.id);
 
-    return {
+    // Check if MFA is required
+    const mfaRequired = await this.mfaService.isMfaRequired(user.id);
+
+    const response: LoginResponse = {
       accessToken,
+      refreshToken,
+      sessionToken,
       tokenType: 'Bearer',
-      expiresIn: 86400, // 24 hours
+      expiresIn: accessTokenExpiresIn,
+      expiresAt: accessTokenExpiresAt,
       user: {
         id: user.id,
         walletAddress: user.walletAddress,
         email: user.email,
         roles: user.roles,
       },
+      mfaRequired,
+      sessionId: session.id,
     };
+
+    this.logger.log(`Tokens generated for user ${user.id}`);
+
+    return response;
   }
 }

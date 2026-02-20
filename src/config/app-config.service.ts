@@ -298,8 +298,31 @@ export class AppConfigService {
     );
   }
 
+  get jwtRefreshSecret(): string {
+    return this.configService.get<string>(
+      'JWT_REFRESH_SECRET',
+      'my-super-secret-refresh-key-for-development-only',
+    );
+  }
+
   get jwtExpiresIn(): string {
     return this.configService.get<string>('JWT_EXPIRES_IN', '24h');
+  }
+
+  get jwtAccessTokenTtl(): string {
+    return this.configService.get<string>('JWT_ACCESS_TOKEN_TTL', '15m');
+  }
+
+  get jwtRefreshTokenTtl(): string {
+    return this.configService.get<string>('JWT_REFRESH_TOKEN_TTL', '7d');
+  }
+
+  get tokenRotationEnabled(): boolean {
+    return this.configService.get<boolean>('TOKEN_ROTATION_ENABLED', true);
+  }
+
+  get mfaRequired(): boolean {
+    return this.configService.get<boolean>('MFA_REQUIRED', false);
   }
 
   get bcryptSaltRounds(): number {
