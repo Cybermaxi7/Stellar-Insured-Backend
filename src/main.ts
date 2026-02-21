@@ -8,6 +8,9 @@ import { QueueService } from './modules/queue/queue.service';
 import helmet from 'helmet';
 import * as fs from 'fs';
 import { rabbitConfig } from './queue/rabbitmq.config';
+import * as cookieParser from 'cookie-parser';
+import csurf from 'csurf';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap(): Promise<void> {
   // Load configuration first to check for HTTPS
@@ -46,14 +49,62 @@ async function bootstrap(): Promise<void> {
     credentials: appConfigService.get<boolean>('CORS_CREDENTIALS', true),
   });
 
-  // Security middleware
-  app.use(helmet());
+  // 🔐 Helmet Security Headers
+  app.use(
+    helmet({
+      contentSecurityPolicy: false, // we will define manually below
+    }),
+  );
+
+  // 🍪 Cookie Parser (required for CSRF)
+  app.use(cookieParser());
 
   // Set global prefix
   app.setGlobalPrefix('api/v1');
 
-  // Global validation pipe
-  app.useGlobalPipes(AppValidationPipe);
+  // 🛡 Global Validation (OWASP input hardening)
+  // -----------------------------
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+
+   // 🧱 Clickjacking Protection
+  // -----------------------------
+  app.use(
+    helmet.frameguard({
+      action: 'deny',
+    }),
+  );
+
+  // -----------------------------
+  // 🧠 Content Security Policy (Strict)
+  // -----------------------------
+  app.use(
+    helmet.contentSecurityPolicy({
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "https:"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
+    }),
+  );
+
+  // -----------------------------
+  // 🛡 CSRF Protection
+  // -----------------------------
+  const csrfProtection = csurf({
+    cookie: true,
+  });
+
+  app.use(csrfProtection);
 
   // Global exception filter
   app.useGlobalFilters(new GlobalExceptionFilter());
@@ -62,10 +113,9 @@ async function bootstrap(): Promise<void> {
   // This allows services (like QueueService) to run their OnModuleDestroy logic automatically
   app.enableShutdownHooks();
 
-    app.connectMicroservice(rabbitConfig);
+  app.connectMicroservice(rabbitConfig);
 
-      await app.startAllMicroservices();
-
+  await app.startAllMicroservices();
 
   // Swagger setup
   if (appConfigService.get<boolean>('SWAGGER_ENABLED', true)) {
@@ -92,7 +142,9 @@ async function bootstrap(): Promise<void> {
   // Log startup information
   /* eslint-disable no-console */
   console.log(`\n Application is running on: http://localhost:${port}`);
-  console.log(` Environment: ${appConfigService.get('NODE_ENV', 'development')}`);
+  console.log(
+    ` Environment: ${appConfigService.get('NODE_ENV', 'development')}`,
+  );
   console.log(`📋 Swagger UI: http://localhost:${port}/api/docs`);
   /* eslint-enable no-console */
 }

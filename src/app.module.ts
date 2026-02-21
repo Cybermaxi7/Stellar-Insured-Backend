@@ -22,7 +22,6 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { FileModule } from './modules/file/file.module';
 import { PaymentsModule } from './modules/payments/payments.module';
-import { QueueModule } from './modules/queue/queue.module';
 import { AuditLogModule } from './common/audit-log/audit-log.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AppController } from './app.controller';
@@ -36,6 +35,7 @@ import { OracleModule } from './modules/oracle/oracle.module';
 import { RateLimitingModule } from './common/rate-limiting.module';
 import { QueueModule } from './queue/queue.module';
 import { FraudDetectionModule } from './fraud-detection/fraud-detection.module';
+import { SecurityModule } from './security/security.module';
 
 @Module({
   imports: [
@@ -44,6 +44,7 @@ import { FraudDetectionModule } from './fraud-detection/fraud-detection.module';
     HealthModule,
     EncryptionModule,
     CachingModule,
+    SecurityModule,
 
     // Redis-based cache for distributed rate limiting
     CacheModule.registerAsync({
