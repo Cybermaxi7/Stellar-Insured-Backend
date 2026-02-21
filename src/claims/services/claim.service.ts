@@ -66,6 +66,7 @@ export class ClaimService {
       flaggedForManualReview: !!duplicateResult,
     });
 
+    
     const savedClaim = await this.claimRepository.save(claim);
     this.logger.log(`Claim ${savedClaim.id} created successfully`);
 

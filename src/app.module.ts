@@ -35,6 +35,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { OracleModule } from './modules/oracle/oracle.module';
 import { RateLimitingModule } from './common/rate-limiting.module';
 import { QueueModule } from './queue/queue.module';
+import { FraudDetectionModule } from './fraud-detection/fraud-detection.module';
 
 @Module({
   imports: [
@@ -126,6 +127,7 @@ import { QueueModule } from './queue/queue.module';
     DashboardModule,
     OracleModule,
     RateLimitingModule,
+    FraudDetectionModule,
   ],
   controllers: [AppController, FilesController],
   providers: [
