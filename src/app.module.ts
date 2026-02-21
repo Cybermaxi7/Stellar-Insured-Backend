@@ -34,6 +34,7 @@ import { CustomThrottlerGuard } from './common/guards/custom-throttler.guard';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { OracleModule } from './modules/oracle/oracle.module';
 import { RateLimitingModule } from './common/rate-limiting.module';
+import { QueueModule } from './queue/queue.module';
 
 @Module({
   imports: [
