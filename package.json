@@ -50,6 +50,7 @@
     "cookie-parser": "^1.4.7",
     "csurf": "^1.11.0",
     "helmet": "^8.1.0",
+    "mixpanel": "^0.20.0",
     "opossum": "^6.0.2",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
