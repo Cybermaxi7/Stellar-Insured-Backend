@@ -1,3 +1,19 @@
+// Mock EncryptionRegistry before any entity imports to prevent the
+// "EncryptionRegistry not initialized yet" error during module loading.
+// This is a test-infrastructure mock — the actual service is tested elsewhere.
+jest.mock('../encryption/encryption.registry', () => ({
+  EncryptionRegistry: {
+    getEncryptionTransformer: jest.fn().mockReturnValue({
+      to: (value: any) => value,
+      from: (value: any) => value,
+    }),
+    getObjectEncryptionTransformer: jest.fn().mockReturnValue({
+      to: (value: any) => value,
+      from: (value: any) => value,
+    }),
+  },
+}));
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { AuthService as SignupAuthService } from './services/auth.service';
@@ -359,13 +375,26 @@ import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Keypair } from 'stellar-sdk';
-import { UnauthorizedException } from '@nestjs/common';
+import { UnauthorizedException, NotFoundException } from '@nestjs/common';
+import { JwtTokenService } from './services/jwt-token.service';
+import { RefreshTokenService } from './services/refresh-token.service';
+import { TokenBlacklistService } from './services/token-blacklist.service';
+import { SessionService } from './services/session.service';
+import { MfaService } from './services/mfa.service';
+import { ChallengeNotFoundException } from './exceptions/challenge-not-found.exception';
+import { ChallengeExpiredException } from './exceptions/challenge-expired.exception';
+import { InvalidSignatureException } from './exceptions/invalid-signature.exception';
+import { UserNotFoundException } from './exceptions/user-not-found.exception';
 
 describe('AuthService', () => {
   let service: AuthService;
   let usersService: Partial<UsersService>;
   let jwtService: Partial<JwtService>;
   let cacheManager: any;
+  let jwtTokenService: Partial<JwtTokenService>;
+  let refreshTokenService: Partial<RefreshTokenService>;
+  let sessionService: Partial<SessionService>;
+  let mfaService: Partial<MfaService>;
 
   const mockUser = {
     id: 'user-123',
@@ -381,11 +410,36 @@ describe('AuthService', () => {
 
     usersService = {
       findByWalletAddress: jest.fn(),
-      updateLastLogin: jest.fn(),
+      updateLastLogin: jest.fn().mockResolvedValue(undefined),
     };
 
     jwtService = {
       sign: jest.fn().mockReturnValue('mock_token'),
+    };
+
+    jwtTokenService = {
+      generateAccessToken: jest.fn().mockReturnValue({
+        token: 'mock_token',
+        expiresAt: new Date(Date.now() + 86400 * 1000),
+        expiresIn: 86400,
+      }),
+    };
+
+    refreshTokenService = {
+      createRefreshToken: jest.fn().mockResolvedValue({
+        token: 'mock_refresh_token',
+      }),
+    };
+
+    sessionService = {
+      createSession: jest.fn().mockResolvedValue({
+        session: { id: 'session-123' },
+        sessionToken: 'mock_session_token',
+      }),
+    };
+
+    mfaService = {
+      isMfaRequired: jest.fn().mockResolvedValue(false),
     };
 
     cacheManager = {
@@ -401,6 +455,11 @@ describe('AuthService', () => {
         AuthService,
         { provide: UsersService, useValue: usersService },
         { provide: JwtService, useValue: jwtService },
+        { provide: JwtTokenService, useValue: jwtTokenService },
+        { provide: RefreshTokenService, useValue: refreshTokenService },
+        { provide: TokenBlacklistService, useValue: {} },
+        { provide: SessionService, useValue: sessionService },
+        { provide: MfaService, useValue: mfaService },
         { provide: CACHE_MANAGER, useValue: cacheManager },
       ],
     }).compile();
@@ -436,17 +495,18 @@ describe('AuthService', () => {
     expect(loginRes).toHaveProperty('accessToken', 'mock_token');
     expect(loginRes.user.walletAddress).toBe(walletAddress);
 
-    // Verify cache cleared
+    // Verify nonce invalidated (replay attack prevention)
     expect(cacheManager.del).toHaveBeenCalled();
   });
 
-  it('should fail with invalid signature', async () => {
+  it('should throw InvalidSignatureException for wrong key', async () => {
     const keypair = Keypair.random();
     const walletAddress = keypair.publicKey();
 
     // Generate valid challenge
-    const challengeRes = await service.generateChallenge(walletAddress);
-    const message = challengeRes.challenge;
+    await service.generateChallenge(walletAddress);
+    const cached: any = mockCacheStore.get(`auth:challenge:${walletAddress}`);
+    const message = cached.message;
 
     // Sign with WRONG key
     const wrongKeypair = Keypair.random();
@@ -455,7 +515,72 @@ describe('AuthService', () => {
       .toString('base64');
 
     await expect(service.login(walletAddress, signature)).rejects.toThrow(
+      InvalidSignatureException,
+    );
+    // InvalidSignatureException extends UnauthorizedException
+    await expect(
+      service.login(walletAddress, signature),
+    ).rejects.toThrow(UnauthorizedException);
+  });
+
+  it('should throw ChallengeNotFoundException when no challenge exists', async () => {
+    const keypair = Keypair.random();
+    const walletAddress = keypair.publicKey();
+    const signature = keypair.sign(Buffer.from('any')).toString('base64');
+
+    // No generateChallenge call — cache is empty
+    await expect(service.login(walletAddress, signature)).rejects.toThrow(
+      ChallengeNotFoundException,
+    );
+    // ChallengeNotFoundException extends NotFoundException
+    await expect(service.login(walletAddress, signature)).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
+  it('should throw ChallengeExpiredException when challenge timestamp is stale', async () => {
+    const keypair = Keypair.random();
+    const walletAddress = keypair.publicKey();
+
+    // Manually inject an already-expired challenge (timestamp > 5 minutes ago)
+    const staleTimestamp = Math.floor(Date.now() / 1000) - 400; // 400 s ago
+    const staleMessage = `Sign this message to login to InsuranceDAO\nNonce: aabbcc\nTimestamp: ${staleTimestamp}`;
+    mockCacheStore.set(`auth:challenge:${walletAddress}`, {
+      nonce: 'aabbcc',
+      timestamp: staleTimestamp,
+      message: staleMessage,
+    });
+
+    const signature = keypair.sign(Buffer.from(staleMessage)).toString('base64');
+
+    await expect(service.login(walletAddress, signature)).rejects.toThrow(
+      ChallengeExpiredException,
+    );
+    // ChallengeExpiredException extends UnauthorizedException
+    await expect(service.login(walletAddress, signature)).rejects.toThrow(
       UnauthorizedException,
     );
+  });
+
+  it('should throw UserNotFoundException when wallet is not registered', async () => {
+    const keypair = Keypair.random();
+    const walletAddress = keypair.publicKey();
+
+    // Generate challenge and sign correctly
+    const challengeRes = await service.generateChallenge(walletAddress);
+    const signature = keypair
+      .sign(Buffer.from(challengeRes.challenge))
+      .toString('base64');
+
+    // User lookup returns null — wallet not registered
+    (usersService.findByWalletAddress as jest.Mock).mockResolvedValue(null);
+
+    await expect(service.login(walletAddress, signature)).rejects.toThrow(
+      UserNotFoundException,
+    );
+    // UserNotFoundException extends NotFoundException
+    await expect(
+      service.login(walletAddress, signature),
+    ).rejects.toThrow(NotFoundException);
   });
 });
