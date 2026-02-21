@@ -7,6 +7,7 @@ import { AppValidationPipe } from './common/pipes/validation.pipe';
 import { QueueService } from './modules/queue/queue.service';
 import helmet from 'helmet';
 import * as fs from 'fs';
+import { rabbitConfig } from './queue/rabbitmq.config';
 
 async function bootstrap(): Promise<void> {
   // Load configuration first to check for HTTPS
@@ -60,6 +61,11 @@ async function bootstrap(): Promise<void> {
   // Enable shutdown hooks
   // This allows services (like QueueService) to run their OnModuleDestroy logic automatically
   app.enableShutdownHooks();
+
+    app.connectMicroservice(rabbitConfig);
+
+      await app.startAllMicroservices();
+
 
   // Swagger setup
   if (appConfigService.get<boolean>('SWAGGER_ENABLED', true)) {
