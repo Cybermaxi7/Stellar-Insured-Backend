@@ -129,3 +129,8 @@ curl -X POST http://localhost:3000/api/v1/files/upload \
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+
+## Documentation
+
+Full documentation is available in the `/docs` directory.

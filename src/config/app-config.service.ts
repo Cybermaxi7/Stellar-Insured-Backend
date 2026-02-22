@@ -111,6 +111,26 @@ export class AppConfigService {
     return this.configService.get<number>('DATABASE_POOL_CONNECTION_TIMEOUT', 2000);
   }
 
+  get databasePoolAcquireTimeout(): number {
+    return this.configService.get<number>('DATABASE_POOL_ACQUIRE_TIMEOUT', 60000);
+  }
+
+  get databasePoolCreateTimeout(): number {
+    return this.configService.get<number>('DATABASE_POOL_CREATE_TIMEOUT', 30000);
+  }
+
+  get databasePoolDestroyTimeout(): number {
+    return this.configService.get<number>('DATABASE_POOL_DESTROY_TIMEOUT', 5000);
+  }
+
+  get databasePoolReapInterval(): number {
+    return this.configService.get<number>('DATABASE_POOL_REAP_INTERVAL', 1000);
+  }
+
+  get databasePoolCreateRetryInterval(): number {
+    return this.configService.get<number>('DATABASE_POOL_CREATE_RETRY_INTERVAL', 200);
+  }
+
   // Database Retry Configuration
   get databaseRetryAttempts(): number {
     return this.configService.get<number>('DATABASE_RETRY_ATTEMPTS', 3);
@@ -122,6 +142,89 @@ export class AppConfigService {
 
   get databaseMaxRetryDelay(): number {
     return this.configService.get<number>('DATABASE_MAX_RETRY_DELAY', 30000);
+  }
+
+  // Environment-specific database configurations
+  get isProductionEnvironment(): boolean {
+    return this.isProduction;
+  }
+
+  get isDevelopmentEnvironment(): boolean {
+    return this.isDevelopment;
+  }
+
+  get isTestEnvironment(): boolean {
+    return this.isTest;
+  }
+
+  // Production-optimized settings
+  get productionDatabasePoolMin(): number {
+    return this.configService.get<number>('DATABASE_POOL_MIN_PROD', 10);
+  }
+
+  get productionDatabasePoolMax(): number {
+    return this.configService.get<number>('DATABASE_POOL_MAX_PROD', 50);
+  }
+
+  get productionQueryTimeout(): number {
+    return this.configService.get<number>('DATABASE_QUERY_TIMEOUT_PROD', 30000);
+  }
+
+  // Development-optimized settings
+  get developmentDatabasePoolMin(): number {
+    return this.configService.get<number>('DATABASE_POOL_MIN_DEV', 2);
+  }
+
+  get developmentDatabasePoolMax(): number {
+    return this.configService.get<number>('DATABASE_POOL_MAX_DEV', 5);
+  }
+
+  get developmentQueryTimeout(): number {
+    return this.configService.get<number>('DATABASE_QUERY_TIMEOUT_DEV', 10000);
+  }
+
+  // Staging-optimized settings
+  get stagingDatabasePoolMin(): number {
+    return this.configService.get<number>('DATABASE_POOL_MIN_STAGING', 5);
+  }
+
+  get stagingDatabasePoolMax(): number {
+    return this.configService.get<number>('DATABASE_POOL_MAX_STAGING', 15);
+  }
+
+  get stagingQueryTimeout(): number {
+    return this.configService.get<number>('DATABASE_QUERY_TIMEOUT_STAGING', 20000);
+  }
+
+  // Environment-aware pool configuration
+  get environmentAwarePoolMin(): number {
+    if (this.isProduction) {
+      return this.productionDatabasePoolMin;
+    } else if (this.isDevelopment) {
+      return this.developmentDatabasePoolMin;
+    } else {
+      return this.stagingDatabasePoolMin;
+    }
+  }
+
+  get environmentAwarePoolMax(): number {
+    if (this.isProduction) {
+      return this.productionDatabasePoolMax;
+    } else if (this.isDevelopment) {
+      return this.developmentDatabasePoolMax;
+    } else {
+      return this.stagingDatabasePoolMax;
+    }
+  }
+
+  get environmentAwareQueryTimeout(): number {
+    if (this.isProduction) {
+      return this.productionQueryTimeout;
+    } else if (this.isDevelopment) {
+      return this.developmentQueryTimeout;
+    } else {
+      return this.stagingQueryTimeout;
+    }
   }
 
   // Database Logging Configuration
@@ -168,6 +271,55 @@ export class AppConfigService {
     return this.configService.get<number>('REDIS_TTL', 3600);
   }
 
+  get redisDb(): number {
+    return this.configService.get<number>('REDIS_DB', 0);
+  }
+
+  // Cache Configuration
+  get cacheDefaultTtl(): number {
+    return this.configService.get<number>('CACHE_DEFAULT_TTL', 300); // 5 minutes
+  }
+
+  get cacheMaxItems(): number {
+    return this.configService.get<number>('CACHE_MAX_ITEMS', 10000);
+  }
+
+  get cacheKeyPrefix(): string {
+    return this.configService.get<string>('CACHE_KEY_PREFIX', 'app_cache:');
+  }
+
+  // External service retry configuration
+  get externalServiceRetryAttempts(): number {
+    return this.configService.get<number>('EXTERNAL_SERVICE_RETRY_ATTEMPTS', 3);
+  }
+
+  get externalServiceRetryDelay(): number {
+    return this.configService.get<number>('EXTERNAL_SERVICE_RETRY_DELAY', 1000);
+  }
+
+  get externalServiceMaxRetryDelay(): number {
+    return this.configService.get<number>('EXTERNAL_SERVICE_MAX_RETRY_DELAY', 30000);
+  }
+
+  // Circuit breaker configuration for outgoing HTTP calls
+  get circuitBreakerEnabled(): boolean {
+    return this.configService.get<boolean>('CIRCUIT_BREAKER_ENABLED', true);
+  }
+
+  get circuitBreakerTimeout(): number {
+    return this.configService.get<number>('CIRCUIT_BREAKER_TIMEOUT', 5000);
+  }
+
+  get circuitBreakerErrorThreshold(): number {
+    // percentage of failed requests before opening
+    return this.configService.get<number>('CIRCUIT_BREAKER_ERROR_THRESHOLD', 50);
+  }
+
+  get circuitBreakerResetTimeout(): number {
+    // time after which breaker will attempt to half-open
+    return this.configService.get<number>('CIRCUIT_BREAKER_RESET_TIMEOUT', 30000);
+  }
+
   // Stellar Configuration
   get stellarNetwork(): string {
     return this.configService.get<string>('STELLAR_NETWORK', 'testnet');
@@ -195,8 +347,31 @@ export class AppConfigService {
     );
   }
 
+  get jwtRefreshSecret(): string {
+    return this.configService.get<string>(
+      'JWT_REFRESH_SECRET',
+      'my-super-secret-refresh-key-for-development-only',
+    );
+  }
+
   get jwtExpiresIn(): string {
     return this.configService.get<string>('JWT_EXPIRES_IN', '24h');
+  }
+
+  get jwtAccessTokenTtl(): string {
+    return this.configService.get<string>('JWT_ACCESS_TOKEN_TTL', '15m');
+  }
+
+  get jwtRefreshTokenTtl(): string {
+    return this.configService.get<string>('JWT_REFRESH_TOKEN_TTL', '7d');
+  }
+
+  get tokenRotationEnabled(): boolean {
+    return this.configService.get<boolean>('TOKEN_ROTATION_ENABLED', true);
+  }
+
+  get mfaRequired(): boolean {
+    return this.configService.get<boolean>('MFA_REQUIRED', false);
   }
 
   get bcryptSaltRounds(): number {
@@ -268,6 +443,74 @@ export class AppConfigService {
 
   get throttleClaimsLimit(): number {
     return this.configService.get<number>('THROTTLE_CLAIMS_LIMIT', 10);
+  }
+
+  // Advanced Rate Limiting Configuration
+  get rateLimitSlidingWindowEnabled(): boolean {
+    return this.configService.get<boolean>('RATE_LIMIT_SLIDING_WINDOW_ENABLED', true);
+  }
+
+  get rateLimitCircuitBreakerEnabled(): boolean {
+    return this.configService.get<boolean>('RATE_LIMIT_CIRCUIT_BREAKER_ENABLED', true);
+  }
+
+  get rateLimitCircuitBreakerFailureThreshold(): number {
+    return this.configService.get<number>('RATE_LIMIT_CIRCUIT_BREAKER_FAILURE_THRESHOLD', 10);
+  }
+
+  get rateLimitCircuitBreakerTimeoutMs(): number {
+    return this.configService.get<number>('RATE_LIMIT_CIRCUIT_BREAKER_TIMEOUT_MS', 300000); // 5 minutes
+  }
+
+  get rateLimitCircuitBreakerSuccessThreshold(): number {
+    return this.configService.get<number>('RATE_LIMIT_CIRCUIT_BREAKER_SUCCESS_THRESHOLD', 2);
+  }
+
+  get rateLimitMonitoringEnabled(): boolean {
+    return this.configService.get<boolean>('RATE_LIMIT_MONITORING_ENABLED', true);
+  }
+
+  // High-risk endpoints rate limits
+  get rateLimitCreateClaimTtl(): number {
+    return this.configService.get<number>('RATE_LIMIT_CREATE_CLAIM_TTL', 3600000); // 1 hour
+  }
+
+  get rateLimitCreateClaimLimit(): number {
+    return this.configService.get<number>('RATE_LIMIT_CREATE_CLAIM_LIMIT', 5);
+  }
+
+  get rateLimitCreatePolicyTtl(): number {
+    return this.configService.get<number>('RATE_LIMIT_CREATE_POLICY_TTL', 3600000); // 1 hour
+  }
+
+  get rateLimitCreatePolicyLimit(): number {
+    return this.configService.get<number>('RATE_LIMIT_CREATE_POLICY_LIMIT', 10);
+  }
+
+  get rateLimitAuthTtl(): number {
+    return this.configService.get<number>('RATE_LIMIT_AUTH_TTL', 900000); // 15 minutes
+  }
+
+  get rateLimitAuthLimit(): number {
+    return this.configService.get<number>('RATE_LIMIT_AUTH_LIMIT', 5);
+  }
+
+  // Per-user rate limits
+  get rateLimitPerUserEnabled(): boolean {
+    return this.configService.get<boolean>('RATE_LIMIT_PER_USER_ENABLED', true);
+  }
+
+  get rateLimitPerIpEnabled(): boolean {
+    return this.configService.get<boolean>('RATE_LIMIT_PER_IP_ENABLED', true);
+  }
+
+  // Redis rate limiting configuration
+  get rateLimitRedisEnabled(): boolean {
+    return this.configService.get<boolean>('RATE_LIMIT_REDIS_ENABLED', this.isProductionEnvironment);
+  }
+
+  get rateLimitRedisTtl(): number {
+    return this.configService.get<number>('RATE_LIMIT_REDIS_TTL', 3600); // 1 hour
   }
 
   // Legacy rate limiting (kept for backward compatibility)

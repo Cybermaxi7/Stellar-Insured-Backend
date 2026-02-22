@@ -1,14 +1,18 @@
 import { Module } from '@nestjs/common';
-import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
-import { APP_GUARD } from '@nestjs/core';
-import { EventEmitterModule } from '@nestjs/event-emitter';
-import { ThrottlerModule } from '@nestjs/throttler';
 import { CacheModule } from '@nestjs/cache-manager';
-import { redisStore } from 'cache-manager-redis-yet';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ConfigModule } from './config/config.module';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { CommonModule } from './common/common.module'; 
 import { AppConfigService } from './config/app-config.service';
 import { DatabaseModule } from './common/database/database.module';
+import { IdempotencyModule } from './common/idempotency/idempotency.module';
+import { IdempotencyInterceptor } from './common/idempotency/interceptors/idempotency.interceptor';
+import { EncryptionModule } from './modules/encryption/encryption.module';
 import { HealthModule } from './modules/health/health.module';
+import { HealthModule as CommonHealthModule } from './common/health/health.module';
+import { GracefulShutdownService } from './common/health/graceful-shutdown.service';
+import { CachingModule } from './common/caching/caching.module';
 import { ClaimsModule } from './modules/claims/claims.module';
 import { PolicyModule } from './modules/policy/policy.module';
 import { DaoModule } from './modules/dao/dao.module';
@@ -18,36 +22,35 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { FileModule } from './modules/file/file.module';
 import { PaymentsModule } from './modules/payments/payments.module';
-import { QueueModule } from './modules/queue/queue.module';
 import { AuditLogModule } from './common/audit-log/audit-log.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core'; 
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor'; 
 import { FilesController } from './modules/files/files.controller';
 import { CustomThrottlerGuard } from './common/guards/custom-throttler.guard';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { OracleModule } from './modules/oracle/oracle.module';
+import { RateLimitingModule } from './common/rate-limiting.module';
+import { QueueModule } from './queue/queue.module';
+import { FraudDetectionModule } from './fraud-detection/fraud-detection.module';
+import { SecurityModule } from './security/security.module';
 
 @Module({
   imports: [
-    EventEmitterModule.forRoot(),
     ConfigModule,
+    EventEmitterModule.forRoot(),
+    CommonModule, 
     HealthModule,
-    
-    // Redis-backed Cache Implementation
-    CacheModule.registerAsync({
-      isGlobal: true,
-      imports: [ConfigModule],
-      useFactory: async (configService: AppConfigService) => ({
-        store: await redisStore({
-          url: 'redis://localhost:6379',
-          ttl: 60000, // 60 seconds default TTL
-        }),
-      }),
-      inject: [AppConfigService],
-    }),
+    CommonHealthModule,
+    EncryptionModule,
+    CachingModule,
+    SecurityModule,
+    CommonModule,
     DatabaseModule,
+    IdempotencyModule,
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: AppConfigService) => ({
@@ -72,6 +75,16 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
             ttl: configService.throttleAdminTtl,
             limit: configService.throttleAdminLimit,
           },
+          {
+            name: 'claims',
+            ttl: configService.rateLimitCreateClaimTtl,
+            limit: configService.rateLimitCreateClaimLimit,
+          },
+          {
+            name: 'policies',
+            ttl: configService.rateLimitCreatePolicyTtl,
+            limit: configService.rateLimitCreatePolicyLimit,
+          },
         ],
       }),
       inject: [AppConfigService],
@@ -88,23 +101,24 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     PaymentsModule,
     QueueModule,
     AuditLogModule,
+    AuditModule,
     DashboardModule,
+    OracleModule,
+    RateLimitingModule,
+    FraudDetectionModule,
   ],
-  controllers: [AppController, FilesController],
+  controllers: [AppController],
   providers: [
     AppService,
-    {
-      provide: APP_GUARD,
-      useClass: CustomThrottlerGuard,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: ResponseInterceptor,
-    },
+    GracefulShutdownService,
     {
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter,
-    }
+    },
+    {
+      provide: APP_INTERCEPTOR, 
+      useClass: LoggingInterceptor,
+    },
   ],
 })
 export class AppModule {}

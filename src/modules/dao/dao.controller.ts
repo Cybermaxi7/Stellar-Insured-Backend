@@ -15,12 +15,14 @@ import {
   ApiParam,
   ApiResponse,
   ApiTags,
+  ApiHeader,
 } from '@nestjs/swagger';
 import { DaoService } from './dao.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { DaoMemberGuard } from './guards/dao-member.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
+import { Idempotent } from 'src/common/idempotency';
 import {
   CreateProposalDto,
   CastVoteDto,
@@ -30,6 +32,9 @@ import {
   VoteResultDto,
 } from './dto';
 import { Vote } from './entities/vote.entity';
+import { PaginationDto } from 'src/common/pagination/dto/pagination.dto';
+import { PaginatedResult } from 'src/common/pagination/interfaces/paginated-result.interface';
+import { Proposal } from './entities/proposal.entity';
 
 @ApiTags('DAO')
 @Controller('dao')
@@ -48,6 +53,12 @@ export class DaoController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Stellar wallet required' })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique identifier for idempotent requests (required)',
+    required: true,
+  })
+  @Idempotent()
   async createProposal(
     @Body() createProposalDto: CreateProposalDto,
     @CurrentUser() user: User,
@@ -64,8 +75,9 @@ export class DaoController {
   })
   async getProposals(
     @Query() queryDto: ProposalListQueryDto,
-  ): Promise<ProposalListResponseDto> {
-    return this.daoService.getProposals(queryDto);
+    @Query() paginationDto: PaginationDto,
+  ): Promise<PaginatedResult<Proposal>> {
+    return this.daoService.getProposals(queryDto, paginationDto);
   }
 
   @Get('proposals/:id')
@@ -97,6 +109,12 @@ export class DaoController {
   @ApiResponse({ status: 403, description: 'Stellar wallet required' })
   @ApiResponse({ status: 404, description: 'Proposal not found' })
   @ApiResponse({ status: 409, description: 'Duplicate vote' })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique identifier for idempotent requests (required)',
+    required: true,
+  })
+  @Idempotent()
   async castVote(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() castVoteDto: CastVoteDto,
@@ -131,6 +149,12 @@ export class DaoController {
   })
   @ApiResponse({ status: 400, description: 'Proposal not in draft status' })
   @ApiResponse({ status: 404, description: 'Proposal not found' })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique identifier for idempotent requests (required)',
+    required: true,
+  })
+  @Idempotent()
   async activateProposal(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: User,

@@ -5,6 +5,7 @@ import { Claim } from '../../claims/entities/claim.entity';
 import { Payment } from '../../payments/entities/payment.entity';
 import type { Vote } from '../../dao/entities/vote.entity';
 import type { Proposal } from '../../dao/entities/proposal.entity';
+import { EncryptionRegistry } from '../..//encryption/encryption.registry';
 
 export enum UserRole {
   USER = 'USER',
@@ -36,8 +37,11 @@ export class User extends BaseEntity {
   @Index()
   walletAddress: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, transformer: EncryptionRegistry.getEncryptionTransformer() })
   email?: string;
+
+  @Column({ nullable: true, select: false })
+  password?: string;
 
   @Column({ nullable: true })
   displayName?: string;
