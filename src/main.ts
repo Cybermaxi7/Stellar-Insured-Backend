@@ -4,6 +4,10 @@ import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { AppValidationPipe } from './common/pipes/validation.pipe';
+import { QueueService } from './modules/queue/queue.service';
+import { VersioningType } from '@nestjs/common';
+import helmet from 'helmet';
+import { DeprecationInterceptor } from './common/interceptors/deprecation.interceptor';
 import { Logger } from '@nestjs/common';
 import helmet from 'helmet';
 import * as fs from 'fs';
@@ -18,7 +22,11 @@ async function bootstrap(): Promise<void> {
   
   try {
     console.log('--- INICIANDO LEVANTAMIENTO DEL SERVIDOR ---');
+  // Configuration service
+  const configService = app.get(ConfigService);
 
+  // Queue service (lifecycle hooks handle shutdown automatically)
+  const queueService = app.get(QueueService);
     const app = await NestFactory.create(AppModule);
     const appConfigService = app.get(ConfigService);
 
@@ -30,6 +38,14 @@ async function bootstrap(): Promise<void> {
       logger.log('HTTPS configuration detected (Skipped for dev stability)');
     }
 
+  // Global prefix (base path for all APIs)
+  app.setGlobalPrefix('api');
+
+  // Enable API versioning (URL-based, e.g. /v1/, /v2/)
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
+  });
     // CORS configuration
     const corsOrigin = appConfigService.get<string>('CORS_ORIGIN');
     app.enableCors({
@@ -45,6 +61,10 @@ async function bootstrap(): Promise<void> {
     app.useGlobalPipes(AppValidationPipe);
     app.useGlobalFilters(new GlobalExceptionFilter());
 
+  app.useGlobalInterceptors(new DeprecationInterceptor());
+
+  // Enable shutdown hooks (for services like QueueService)
+  app.enableShutdownHooks();
     // Enable shutdown hooks for graceful shutdown
     app.enableShutdownHooks();
     
@@ -86,6 +106,12 @@ async function bootstrap(): Promise<void> {
     logger.log(`Liveness Probe: http://localhost:${port}/health/live`);
     logger.log(`Readiness Probe: http://localhost:${port}/health/ready`);
 
+  // Log startup information
+  /* eslint-disable no-console */
+  console.log(`\n🚀 Application is running on: http://localhost:${port}`);
+  console.log(`🌍 Environment: ${configService.get('NODE_ENV', 'development')}`);
+  console.log(`📋 Swagger UI: http://localhost:${port}/api/docs`);
+  /* eslint-enable no-console */
   } catch (error) {
     console.error('---  ERROR FATAL DURANTE EL BOOTSTRAP ---');
     console.error(error);
