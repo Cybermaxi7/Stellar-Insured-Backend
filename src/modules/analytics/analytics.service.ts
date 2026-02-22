@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
 import { AnalyticsQueryDto } from './dto/analytics-query.dto';
 import {
   AnalyticsOverview,
@@ -12,6 +12,14 @@ import {
 @Injectable()
 export class AnalyticsService {
   private readonly logger = new Logger(AnalyticsService.name);
+  private readonly analyticsEnabled =
+    process.env.ANALYTICS_ENABLED === 'true';
+
+  constructor(
+    @Optional()
+    @Inject('MIXPANEL')
+    private readonly mixpanel?: any,
+  ) {}
 
   /**
    * Gets analytics overview with aggregated metrics
@@ -28,6 +36,12 @@ export class AnalyticsService {
       this.getFraudDetectionStatistics(),
     ]);
 
+    // 🔥 Track analytics overview request
+    await this.trackEvent('Analytics Overview Generated', undefined, {
+      startDate: dateRange.startDate,
+      endDate: dateRange.endDate,
+    });
+
     return {
       dao,
       policies,
@@ -37,6 +51,42 @@ export class AnalyticsService {
       periodEnd: dateRange.endDate,
       generatedAt: new Date(),
     };
+  }
+
+  /**
+   * Public Event Tracking Method
+   */
+  async trackEvent(
+    event: string,
+    userId?: string,
+    properties?: Record<string, any>,
+  ) {
+    if (!this.analyticsEnabled || !this.mixpanel) return;
+
+    try {
+      this.mixpanel.track(event, {
+        distinct_id: userId || 'anonymous',
+        time: new Date(),
+        ...properties,
+      });
+
+      this.logger.log(`Tracked event: ${event}`);
+    } catch (error) {
+      this.logger.error('Analytics tracking failed', error);
+    }
+  }
+
+  /**
+   * Identify user for cohort analysis
+   */
+  async identifyUser(userId: string, traits: Record<string, any>) {
+    if (!this.analyticsEnabled || !this.mixpanel) return;
+
+    try {
+      this.mixpanel.people.set(userId, traits);
+    } catch (error) {
+      this.logger.error('Analytics identify failed', error);
+    }
   }
 
   /**

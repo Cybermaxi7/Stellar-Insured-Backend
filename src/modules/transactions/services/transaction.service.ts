@@ -39,19 +39,24 @@ export class TransactionService {
 
       try {
         // Set isolation level
-        const isolationLevel = options.isolationLevel || IsolationLevel.READ_COMMITTED;
+        const isolationLevel =
+          options.isolationLevel || IsolationLevel.READ_COMMITTED;
         await this.setIsolationLevel(queryRunner, isolationLevel);
 
         // Start transaction
         await queryRunner.startTransaction(isolationLevel);
-        this.logger.debug(`Transaction started: ${transactionId} for ${operationName}`);
+        this.logger.debug(
+          `Transaction started: ${transactionId} for ${operationName}`,
+        );
 
         // Execute the business logic
         const result = await callback(queryRunner);
 
         // Commit transaction
         await queryRunner.commitTransaction();
-        this.logger.log(`Transaction committed: ${transactionId} for ${operationName}`);
+        this.logger.log(
+          `Transaction committed: ${transactionId} for ${operationName}`,
+        );
 
         // Log successful transaction
         this.logTransaction({
@@ -83,7 +88,8 @@ export class TransactionService {
             id: transactionId,
             operationName,
             status: 'ROLLED_BACK',
-            isolationLevel: options.isolationLevel || IsolationLevel.READ_COMMITTED,
+            isolationLevel:
+              options.isolationLevel || IsolationLevel.READ_COMMITTED,
             startTime,
             endTime: new Date(),
             duration: new Date().getTime() - startTime.getTime(),
@@ -132,7 +138,7 @@ export class TransactionService {
   ): Promise<TransactionResult<T[]>> {
     return this.executeTransaction(
       operationName,
-      async (queryRunner) => {
+      async queryRunner => {
         const results: any[] = [];
         for (const operation of operations) {
           results.push(await operation(queryRunner));
@@ -173,7 +179,7 @@ export class TransactionService {
   getTransactionLogs(operationName?: string): TransactionLog[] {
     if (operationName) {
       return Array.from(this.transactionLogs.values()).filter(
-        (log) => log.operationName === operationName,
+        log => log.operationName === operationName,
       );
     }
     return Array.from(this.transactionLogs.values());
@@ -184,9 +190,9 @@ export class TransactionService {
    */
   getTransactionMetrics(operationName?: string) {
     const logs = this.getTransactionLogs(operationName);
-    const completed = logs.filter((log) => log.status === 'COMPLETED').length;
-    const rolledBack = logs.filter((log) => log.status === 'ROLLED_BACK').length;
-    const failed = logs.filter((log) => log.status === 'FAILED').length;
+    const completed = logs.filter(log => log.status === 'COMPLETED').length;
+    const rolledBack = logs.filter(log => log.status === 'ROLLED_BACK').length;
+    const failed = logs.filter(log => log.status === 'FAILED').length;
     const avgDuration =
       logs.reduce((sum, log) => sum + log.duration, 0) / (logs.length || 1);
 
@@ -200,6 +206,40 @@ export class TransactionService {
     };
   }
 
+  async execute<T>(work: (queryRunner: QueryRunner) => Promise<T>): Promise<T> {
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    await queryRunner.connect();
+
+    try {
+      const result = await work(queryRunner);
+      await queryRunner.commitTransaction();
+      return result;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async processClaim(dto: CreateClaimDto) {
+    return this.transactionService.execute(async qr => {
+      const claimRepo = qr.manager.getRepository(Claim);
+      const paymentRepo = qr.manager.getRepository(Payment);
+
+      const claim = await claimRepo.save(dto);
+
+      const payment = paymentRepo.create({
+        claimId: claim.id,
+        status: 'RESERVED',
+      });
+
+      await paymentRepo.save(payment);
+
+      return claim;
+    }, 'SERIALIZABLE');
+  }
   /**
    * Private helper: Set isolation level
    */
@@ -208,7 +248,9 @@ export class TransactionService {
     isolationLevel: IsolationLevel,
   ): Promise<void> {
     try {
-      await queryRunner.query(`SET TRANSACTION ISOLATION LEVEL ${isolationLevel}`);
+      await queryRunner.query(
+        `SET TRANSACTION ISOLATION LEVEL ${isolationLevel}`,
+      );
     } catch (error) {
       this.logger.warn(`Failed to set isolation level: ${error.message}`);
     }
@@ -225,7 +267,7 @@ export class TransactionService {
       'ECONNRESET',
       'ETIMEDOUT',
     ];
-    return transientErrors.some((msg) =>
+    return transientErrors.some(msg =>
       error.message?.toLowerCase().includes(msg.toLowerCase()),
     );
   }
@@ -234,7 +276,7 @@ export class TransactionService {
    * Private helper: Sleep utility
    */
   private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**

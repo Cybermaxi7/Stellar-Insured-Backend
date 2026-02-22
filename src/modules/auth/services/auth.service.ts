@@ -5,6 +5,7 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { WalletService } from './wallet.service';
 import {
   User,
@@ -21,6 +22,7 @@ import {
   BulkUserImportDto,
   BulkUserImportResponseDto,
 } from '../dtos/auth.dto';
+import { RegisterDto, LoginPasswordDto } from '../dtos';
 
 /**
  * Mock in-memory database for users (in production, use actual database)
@@ -37,7 +39,73 @@ const referralCodeIndex: Map<string, string> = new Map(); // Maps referral code 
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
-  constructor(private walletService: WalletService) {}
+  constructor(private walletService: WalletService) { }
+
+  /**
+   * Registers a new user with password-based signup
+   */
+  async register(signupDto: RegisterDto): Promise<SignupResponseDto> {
+    this.logger.log(`Processing registration for email: ${signupDto.email}`);
+
+    const normalizedEmail = this.walletService.normalizeEmail(signupDto.email);
+
+    if (emailIndex.has(normalizedEmail)) {
+      throw new ConflictException('This email address is already registered.');
+    }
+
+    const newUser = new User();
+    newUser.email = normalizedEmail;
+
+    // Hash password
+    const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS || '12', 10);
+    newUser.password = await bcrypt.hash(signupDto.password, saltRounds);
+
+    newUser.displayName = normalizedEmail.split('@')[0];
+    newUser.roles = [UserRole.USER];
+    newUser.status = UserStatus.ACTIVE;
+    newUser.isWalletVerified = false;
+    newUser.signupSource = SignupSource.ORGANIC;
+    newUser.walletAddress = signupDto.stellarAddress || `TEMP_${Date.now()}`;
+
+    // Store user
+    usersDatabase.set(newUser.id, newUser);
+    emailIndex.set(normalizedEmail, newUser.id);
+    if (signupDto.stellarAddress) {
+      walletIndex.set(signupDto.stellarAddress, newUser.id);
+    }
+
+    return this.mapUserToResponse(newUser);
+  }
+
+  /**
+   * Authenticates user with email and password
+   */
+  async loginWithPassword(loginDto: LoginPasswordDto): Promise<{ accessToken: string, user: SignupResponseDto }> {
+    const normalizedEmail = this.walletService.normalizeEmail(loginDto.email);
+    const userId = emailIndex.get(normalizedEmail);
+
+    if (!userId) {
+      throw new BadRequestException('Invalid credentials');
+    }
+
+    const user = usersDatabase.get(userId);
+    if (!user || (!user.password && loginDto.password)) {
+      throw new BadRequestException('Invalid credentials');
+    }
+
+    const isMatch = await bcrypt.compare(loginDto.password, user.password);
+    if (!isMatch) {
+      throw new BadRequestException('Invalid credentials');
+    }
+
+    // TODO: Generate real JWT
+    const accessToken = 'mock_jwt_token_for_now';
+
+    return {
+      accessToken,
+      user: this.mapUserToResponse(user)
+    };
+  }
 
   /**
    * Registers a new user with wallet-based signup

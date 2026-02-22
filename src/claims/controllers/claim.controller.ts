@@ -10,6 +10,7 @@ import {
   HttpStatus,
   Request,
   BadRequestException,
+  Query,
 } from '@nestjs/common';
 import { ClaimService } from '../services/claim.service';
 import { CreateClaimDto } from '../dto/create-claim.dto';
@@ -17,6 +18,10 @@ import { Claim, ClaimStatus } from '../entities/claim.entity';
 import { ClaimOwnerGuard } from '../guards/claim-owner.guard';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { PermissionGuard } from 'src/permissions/permission.guard';
+import { Idempotent } from 'src/common/idempotency';
+import { PaginationDto } from 'src/common/pagination/dto/pagination.dto';
+import { PaginatedResult } from 'src/common/pagination/interfaces/paginated-result.interface';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('claims')
 export class ClaimController {
@@ -26,11 +31,14 @@ export class ClaimController {
    * POST /claims
    * Create a new claim
    * Requires: authenticated user with active policy
+   * Requires: Idempotency-Key header for deduplication
    * Validation: policy eligibility, duplicate detection
    * Response: 201 Created with claim details (or 409 if duplicate detected)
    */
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @Throttle({ default: { limit: 5, ttl: 3600000 } }) // 5 claims per hour per user
+  @Idempotent()
   async createClaim(req: any, createClaimDto: CreateClaimDto): Promise<Claim> {
     const userId = req.user?.id;
 
@@ -47,6 +55,7 @@ export class ClaimController {
    * Requires: claim owner or admin
    */
   @Get(':claimId')
+  @Throttle({ default: { limit: 50, ttl: 60000 } }) // 50 requests per minute per user
   @UseGuards(ClaimOwnerGuard)
   async getClaimById(claimId: string): Promise<Claim> {
     const claim = await this.claimService.getClaimById(claimId);
@@ -63,14 +72,18 @@ export class ClaimController {
    * Retrieve all claims for the authenticated user
    */
   @Get('user/me')
-  async getUserClaims(req: any): Promise<Claim[]> {
+  @Throttle({ default: { limit: 30, ttl: 60000 } }) // 30 requests per minute per user
+  async getUserClaims(
+    req: any,
+    @Query() paginationDto: PaginationDto,
+  ): Promise<PaginatedResult<Claim>> {
     const userId = req.user?.id;
 
     if (!userId) {
       throw new BadRequestException('User ID is required');
     }
 
-    return this.claimService.getClaimsByUserId(userId);
+    return this.claimService.getClaimsByUserId(userId, paginationDto);
   }
 
   /**
@@ -79,16 +92,23 @@ export class ClaimController {
    * Note: Admin endpoint - should be restricted
    */
   @Get('policy/:policyId')
-  async getPolicyClaims(policyId: string): Promise<Claim[]> {
-    return this.claimService.getClaimsByPolicyId(policyId);
+  @Throttle({ admin: { limit: 100, ttl: 60000 } }) // 100 requests per minute for admin
+  async getPolicyClaims(
+    policyId: string,
+    @Query() paginationDto: PaginationDto,
+  ): Promise<PaginatedResult<Claim>> {
+    return this.claimService.getClaimsByPolicyId(policyId, paginationDto);
   }
 
   /**
    * PATCH /claims/:claimId/status
    * Update claim status (for admin/reviewer)
    * Requires: admin or authorized reviewer
+   * Requires: Idempotency-Key header for safe replay
    */
   @Patch(':claimId/status')
+  @Throttle({ admin: { limit: 20, ttl: 60000 } }) // 20 status updates per minute for admin
+  @Idempotent()
   async updateClaimStatus(
     claimId: string,
     body: { status: ClaimStatus; notes?: string },
@@ -118,6 +138,7 @@ export class ClaimController {
    * Admin endpoint - should be restricted
    */
   @Get('admin/flagged')
+  @Throttle({ admin: { limit: 50, ttl: 60000 } }) // 50 requests per minute for admin
   async getFlaggedClaims(): Promise<Claim[]> {
     return this.claimService.getFlaggedClaims();
   }
@@ -128,6 +149,7 @@ export class ClaimController {
    * Admin endpoint - should be restricted
    */
   @Get('admin/status/:status')
+  @Throttle({ admin: { limit: 50, ttl: 60000 } }) // 50 requests per minute for admin
   async getClaimsByStatus(status: string): Promise<Claim[]> {
     if (!Object.values(ClaimStatus).includes(status as ClaimStatus)) {
       throw new BadRequestException(`Invalid claim status: ${status}`);
@@ -142,6 +164,7 @@ export class ClaimController {
    * Admin endpoint - should be restricted
    */
   @Get('admin/policy/:policyId/stats')
+  @Throttle({ admin: { limit: 30, ttl: 60000 } }) // 30 requests per minute for admin
   async getPolicyClaimStats(policyId: string): Promise<{
     totalClaims: number;
     totalClaimAmount: number;
@@ -150,10 +173,4 @@ export class ClaimController {
   }> {
     return this.claimService.getPolicyClaimStats(policyId);
   }
-  
-  // src/claims/claims.controller.ts
-@UseGuards(JwtAuthGuard, PermissionGuard)
-@Post(':id/approve')
-approveClaim() {}
-
 }

@@ -7,15 +7,19 @@ import {
   IsOptional,
   MinLength,
   MaxLength,
-  Max,
   Min,
-  // Type removed from here
+  Max,
 } from 'class-validator';
-import { Type } from 'class-transformer'; // <--- Added correct import
-// FIXED: Type must be imported from class-transformer
 import { Type } from 'class-transformer';
 import { ClaimType } from '../entities/claim.entity';
-import { Type } from 'class-transformer';
+import { 
+  IsSecureEmail,
+  IsValidAmount,
+  IsStrongPassword,
+  IsValidPolicyNumber,
+  IsValidClaimNumber,
+  IsValidDateRange,
+} from '../../../common/validation/validators/business.validators';
 
 export class CreateClaimDto {
   @IsUUID()
@@ -26,6 +30,11 @@ export class CreateClaimDto {
 
   @Type(() => Date)
   @IsDate()
+  @IsValidDateRange('incidentDate', {
+    startDate: 'incidentDate',
+    endDate: 'incidentDate',
+    message: 'Incident date must be within reasonable range',
+  })
   incidentDate: Date;
 
   @IsDecimal({ decimal_digits: '1,2' })
@@ -38,6 +47,43 @@ export class CreateClaimDto {
   @MaxLength(2000)
   description: string;
 
+  @IsString()
   @IsOptional()
+  @MaxLength(500)
   metadata?: Record<string, any>;
+
+  @IsStrongPassword()
+  @IsOptional()
+  @MaxLength(100)
+  evidence?: string;
+
+  @IsSecureEmail()
+  @IsOptional()
+  @MaxLength(255)
+  contactEmail?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(20)
+  contactPhone?: string;
+
+  @IsOptional()
+  @MaxLength(100)
+  supportingDocuments?: string;
+
+  @IsOptional()
+  @MaxLength(50)
+  location?: string;
+
+  @IsOptional()
+  @MaxLength(100)
+  reportedBy?: string;
+
+  @IsOptional()
+  @MaxLength(500)
+  policeReportNumber?: string;
+
+  @IsOptional()
+  @MaxLength(100)
+  adjusterNotes?: string;
 }

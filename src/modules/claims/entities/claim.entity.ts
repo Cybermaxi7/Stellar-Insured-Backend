@@ -5,6 +5,7 @@ import { Policy } from '../../policy/entities/policy.entity';
 import { ClaimStatus } from '../enums/claim-status.enum';
 import { ClaimStatusHistory } from './claim-status-history.entity';
 import { Payment } from '../../payments/entities/payment.entity';
+import { EncryptionRegistry } from '../../encryption/encryption.registry';
 
 @Entity('claims')
 export class Claim extends BaseEntity {
@@ -19,7 +20,7 @@ export class Claim extends BaseEntity {
   })
   status: ClaimStatus;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', transformer: EncryptionRegistry.getEncryptionTransformer() })
   description: string;
 
   @Column({ type: 'decimal', precision: 20, scale: 8 })
@@ -40,6 +41,6 @@ export class Claim extends BaseEntity {
   @OneToOne(() => Payment, (payment) => payment.claim)
   payment: Payment;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: EncryptionRegistry.getObjectEncryptionTransformer() })
   evidence?: Record<string, any>;
 }

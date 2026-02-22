@@ -1,27 +1,13 @@
 import { Global, Module, Logger } from '@nestjs/common';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConfigModule } from '../../config/config.module';
-import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppConfigService } from '../../config/app-config.service';
-import { ConfigModule } from 'src/config/config.module';
 
 @Global()
 @Module({
   imports: [
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: AppConfigService) => ({
-        type: 'postgres',
-        host: configService.databaseHost,
-        port: configService.databasePort,
-        username: configService.databaseUsername,
-        password: configService.databasePassword,
-        database: configService.databaseName,
-        autoLoadEntities: true,
-        synchronize: configService.isDevelopment,
-        logging: configService.isDevelopment,
-      }),
       inject: [AppConfigService],
       useFactory: async (configService: AppConfigService): Promise<TypeOrmModuleOptions> => {
         const logger = new Logger('DatabaseModule');
@@ -46,12 +32,18 @@ import { ConfigModule } from 'src/config/config.module';
           logger.warn('SSL/TLS encryption is disabled - not recommended for production');
         }
 
-        // Connection Pool Configuration
+        // Enhanced Connection Pool Configuration
         const poolConfig = {
-          min: configService.databasePoolMin,
-          max: configService.databasePoolMax,
+          min: configService.environmentAwarePoolMin || configService.databasePoolMin,
+          max: configService.environmentAwarePoolMax || configService.databasePoolMax,
           idleTimeoutMillis: configService.databasePoolIdleTimeout,
           connectionTimeoutMillis: configService.databasePoolConnectionTimeout,
+          // Additional pool optimizations
+          acquireTimeoutMillis: configService.databasePoolAcquireTimeout || 60000,
+          createTimeoutMillis: configService.databasePoolCreateTimeout || 30000,
+          destroyTimeoutMillis: configService.databasePoolDestroyTimeout || 5000,
+          reapIntervalMillis: configService.databasePoolReapInterval || 1000,
+          createRetryIntervalMillis: configService.databasePoolCreateRetryInterval || 200,
         };
 
         logger.log(
@@ -95,7 +87,6 @@ import { ConfigModule } from 'src/config/config.module';
           // Retry Logic with Exponential Backoff
           retryAttempts: retryAttempts,
           retryDelay: retryDelay,
-          maxRetryDelay: maxRetryDelay,
 
           // Logging Configuration
           logging: configService.databaseLogging,

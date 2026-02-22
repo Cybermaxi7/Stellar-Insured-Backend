@@ -6,29 +6,52 @@ import {
   Body,
   HttpCode,
   HttpStatus,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiTooManyRequestsResponse,
+  ApiHeader,
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { PolicyService } from './policy.service';
 import { CreatePolicyDto } from './dto/create-policy.dto';
 import { PolicyTransitionDto } from './dto/policy-transition.dto';
+import { Idempotent } from 'src/common/idempotency';
+import { PaginationDto } from 'src/common/pagination/dto/pagination.dto';
+import { PaginatedResult } from 'src/common/pagination/interfaces/paginated-result.interface';
+import { Policy } from './entities/policy.entity';
 
 @ApiTags('Policies')
 @Controller('policies')
 export class PolicyController {
   constructor(private readonly policyService: PolicyService) {}
 
+  @Get()
+  @ApiOperation({ summary: 'Get all policies' })
+  @ApiResponse({ status: 200, description: 'Policies retrieved successfully' })
+  @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
+  @Throttle({ public: { limit: 50, ttl: 60000 } })
+  async getPolicies(
+    @Query() paginationDto: PaginationDto,
+  ): Promise<PaginatedResult<Policy>> {
+    return this.policyService.getAllPolicies(paginationDto);
+  }
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new policy' })
   @ApiResponse({ status: 201, description: 'Policy created successfully' })
   @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique identifier for idempotent requests (required)',
+    required: true,
+  })
   @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 policies per minute
+  @Idempotent()
   createPolicy(@Body() dto: CreatePolicyDto) {
     // TODO: Extract userId from request context
     const userId = 'user-123';
@@ -70,7 +93,13 @@ export class PolicyController {
   @ApiOperation({ summary: 'Transition policy to new status' })
   @ApiResponse({ status: 200, description: 'Policy transitioned successfully' })
   @ApiTooManyRequestsResponse({ description: 'Rate limit exceeded' })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    description: 'Unique identifier for idempotent requests (required)',
+    required: true,
+  })
   @Throttle({ admin: { limit: 100, ttl: 60000 } }) // Admin endpoint: 100 per minute
+  @Idempotent()
   transitionPolicy(@Param('id') id: string, @Body() dto: PolicyTransitionDto) {
     // TODO: Extract userId and userRole from request context
     const userId = 'user-123';

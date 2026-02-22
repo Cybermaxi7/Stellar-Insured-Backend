@@ -4,6 +4,7 @@ import { User } from '../../users/entities/user.entity';
 import { Policy } from '../../policy/entities/policy.entity';
 import { Claim } from '../../claims/entities/claim.entity';
 import { PaymentStatus, PaymentType } from '../enums/payment.enum';
+import { EncryptionRegistry } from '../../encryption/encryption.registry';
 
 @Entity('payments')
 export class Payment extends BaseEntity {
@@ -40,12 +41,12 @@ export class Payment extends BaseEntity {
   @JoinColumn()
   claim?: Claim;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, transformer: EncryptionRegistry.getEncryptionTransformer() })
   paymentMethod?: string;
 
   @Column({ nullable: true })
   externalReference?: string;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: 'text', nullable: true, transformer: EncryptionRegistry.getObjectEncryptionTransformer() })
   metadata?: Record<string, any>;
 }

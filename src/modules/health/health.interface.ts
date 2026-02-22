@@ -4,4 +4,9 @@ export interface HealthCheckResponse {
   uptime: number;
   version?: string;
   environment?: string;
+  checks?: {
+    database?: any;
+    queues?: any;
+  };
+  error?: string;
 }
