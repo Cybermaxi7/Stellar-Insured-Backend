@@ -38,9 +38,6 @@ import { Request } from 'express';
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly mfaService: MfaService,
-    private readonly sessionService: SessionService,
-  ) {}
     private readonly authServices: AuthServices,
     private readonly mfaService: MfaService,
     private readonly sessionService: SessionService,

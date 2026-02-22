@@ -1,14 +1,17 @@
 import { Module } from '@nestjs/common';
+import { CacheModule } from '@nestjs/cache-manager';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ConfigModule } from './config/config.module';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { CommonModule } from './common/common.module'; 
 import { AppConfigService } from './config/app-config.service';
 import { DatabaseModule } from './common/database/database.module';
-import { CommonModule } from './common/common.module';
 import { IdempotencyModule } from './common/idempotency/idempotency.module';
 import { IdempotencyInterceptor } from './common/idempotency/interceptors/idempotency.interceptor';
 import { EncryptionModule } from './modules/encryption/encryption.module';
 import { HealthModule } from './modules/health/health.module';
+import { HealthModule as CommonHealthModule } from './common/health/health.module';
+import { GracefulShutdownService } from './common/health/graceful-shutdown.service';
 import { CachingModule } from './common/caching/caching.module';
 import { ClaimsModule } from './modules/claims/claims.module';
 import { PolicyModule } from './modules/policy/policy.module';
@@ -41,35 +44,10 @@ import { SecurityModule } from './security/security.module';
     EventEmitterModule.forRoot(),
     CommonModule, 
     HealthModule,
+    CommonHealthModule,
     EncryptionModule,
     CachingModule,
     SecurityModule,
-
-    // Redis-based cache for distributed rate limiting
-    CacheModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: AppConfigService) => {
-        // Use Redis in production, in-memory for development/testing
-        if (configService.isProductionEnvironment) {
-          const redisStore = require('cache-manager-redis-yet').redisStore;
-          return {
-            isGlobal: true,
-            store: redisStore,
-            url: configService.redisUrl,
-            ttl: configService.redisTtl,
-            max: 10000,
-          };
-        } else {
-          // For development and testing environments
-          return {
-            isGlobal: true,
-            ttl: 5, // 5 seconds for dev
-            max: 10000,
-          };
-        }
-      },
-      inject: [AppConfigService],
-    }),
     CommonModule,
     DatabaseModule,
     IdempotencyModule,
@@ -132,6 +110,7 @@ import { SecurityModule } from './security/security.module';
   controllers: [AppController],
   providers: [
     AppService,
+    GracefulShutdownService,
     {
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter,

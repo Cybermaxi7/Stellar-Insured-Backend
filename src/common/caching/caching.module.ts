@@ -41,6 +41,6 @@ import { CacheController } from './cache.controller';
   ],
   controllers: [CacheController],
   providers: [CachingService, CacheHealthIndicator, CacheMonitoringService],
-  exports: [CachingService, CacheHealthIndicator, CacheMonitoringService],
+  exports: [CachingService, CacheHealthIndicator, CacheMonitoringService, CacheModule],
 })
 export class CachingModule {}
