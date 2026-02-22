@@ -5,14 +5,17 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { AppValidationPipe } from './common/pipes/validation.pipe';
 import { QueueService } from './modules/queue/queue.service';
+import { VersioningType } from '@nestjs/common';
 import helmet from 'helmet';
+import { DeprecationInterceptor } from './common/interceptors/deprecation.interceptor';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
-  // Get configuration service
+  // Configuration service
   const configService = app.get(ConfigService);
-  // queueService is available for manual use if needed, but we rely on lifecycle hooks now
+
+  // Queue service (lifecycle hooks handle shutdown automatically)
   const queueService = app.get(QueueService);
 
   // Enable CORS
@@ -25,8 +28,14 @@ async function bootstrap(): Promise<void> {
   // Security middleware
   app.use(helmet());
 
-  // Set global prefix
-  app.setGlobalPrefix('api/v1');
+  // Global prefix (base path for all APIs)
+  app.setGlobalPrefix('api');
+
+  // Enable API versioning (URL-based, e.g. /v1/, /v2/)
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
+  });
 
   // Global validation pipe
   app.useGlobalPipes(AppValidationPipe);
@@ -34,8 +43,9 @@ async function bootstrap(): Promise<void> {
   // Global exception filter
   app.useGlobalFilters(new GlobalExceptionFilter());
 
-  // Enable shutdown hooks
-  // This allows services (like QueueService) to run their OnModuleDestroy logic automatically
+  app.useGlobalInterceptors(new DeprecationInterceptor());
+
+  // Enable shutdown hooks (for services like QueueService)
   app.enableShutdownHooks();
 
   // Swagger setup
@@ -62,8 +72,8 @@ async function bootstrap(): Promise<void> {
 
   // Log startup information
   /* eslint-disable no-console */
-  console.log(`\n Application is running on: http://localhost:${port}`);
-  console.log(` Environment: ${configService.get('NODE_ENV', 'development')}`);
+  console.log(`\n🚀 Application is running on: http://localhost:${port}`);
+  console.log(`🌍 Environment: ${configService.get('NODE_ENV', 'development')}`);
   console.log(`📋 Swagger UI: http://localhost:${port}/api/docs`);
   /* eslint-enable no-console */
 }
