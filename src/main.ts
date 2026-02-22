@@ -7,6 +7,10 @@ import { AppValidationPipe } from './common/pipes/validation.pipe';
 import { Logger } from '@nestjs/common';
 import helmet from 'helmet';
 import * as fs from 'fs';
+import { rabbitConfig } from './queue/rabbitmq.config';
+import * as cookieParser from 'cookie-parser';
+import csurf from 'csurf';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap(): Promise<void> {
   const logger = new Logger('Bootstrap');
@@ -79,3 +83,40 @@ async function bootstrap(): Promise<void> {
 }
 
 bootstrap();
+  app.connectMicroservice(rabbitConfig);
+
+  await app.startAllMicroservices();
+
+  // Swagger setup
+  if (appConfigService.get<boolean>('SWAGGER_ENABLED', true)) {
+    const config = new DocumentBuilder()
+      .setTitle('Stellar Insured API')
+      .setDescription('API documentation for Stellar Insured backend')
+      .setVersion(appConfigService.get<string>('APP_VERSION', '1.0'))
+      .addBearerAuth()
+      .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup(
+      appConfigService.get<string>('SWAGGER_PATH', '/api/docs'),
+      app,
+      document,
+    );
+  }
+
+  // Get port from config
+  const port = appConfigService.get<number>('PORT', 4000);
+
+  await app.listen(port);
+
+  // Log startup information
+  /* eslint-disable no-console */
+  console.log(`\n Application is running on: http://localhost:${port}`);
+  console.log(
+    ` Environment: ${appConfigService.get('NODE_ENV', 'development')}`,
+  );
+  console.log(`📋 Swagger UI: http://localhost:${port}/api/docs`);
+  /* eslint-enable no-console */
+}
+
+void bootstrap();

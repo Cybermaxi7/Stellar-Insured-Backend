@@ -11,6 +11,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { AuthService as AuthServices } from './services/auth.service';
 import { LoginChallengeDto } from './dtos/login-challenge.dto';
 import { LoginDto } from './dtos/login.dto';
 import { RefreshTokenDto } from './dtos/refresh-token.dto';
@@ -28,6 +29,8 @@ import { Public } from '../../common/decorators/public.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { MfaService } from './services/mfa.service';
 import { SessionService } from './services/session.service';
+import { RegisterDto } from './dtos/register.dto';
+import { LoginPasswordDto } from './dtos/login-password.dto';
 import { Request } from 'express';
 
 @ApiTags('Authentication')
@@ -38,6 +41,28 @@ export class AuthController {
     private readonly mfaService: MfaService,
     private readonly sessionService: SessionService,
   ) {}
+    private readonly authServices: AuthServices,
+    private readonly mfaService: MfaService,
+    private readonly sessionService: SessionService,
+  ) {}
+
+  @Public()
+  @Post('register')
+  @ApiOperation({ summary: 'Register a new user with email and password' })
+  @ApiResponse({ status: 201, description: 'User registered successfully' })
+  @HttpCode(HttpStatus.CREATED)
+  async register(@Body() dto: RegisterDto) {
+    return this.authServices.register(dto);
+  }
+
+  @Public()
+  @Post('login/password')
+  @ApiOperation({ summary: 'Login with email and password' })
+  @ApiResponse({ status: 200, description: 'Login successful, JWT issued' })
+  @HttpCode(HttpStatus.OK)
+  async loginWithPassword(@Body() dto: LoginPasswordDto) {
+    return this.authServices.loginWithPassword(dto);
+  }
 
   @Public()
   @Post('login/challenge')

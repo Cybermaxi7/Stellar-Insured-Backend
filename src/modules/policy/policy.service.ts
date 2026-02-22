@@ -10,6 +10,8 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PolicyStatus } from './enums/policy-status.enum';
 import { PolicyTransitionAction } from './enums/policy-transition-action.enum';
 import { CreatePolicyDto } from './dto/create-policy.dto';
+import { CachingService } from '../../common/caching/caching.service';
+import { Cacheable, CacheInvalidateByTag, CacheInvalidate } from '../../common/caching/cache.decorators';
 import {
   EventNames,
   PolicyIssuedEvent,
@@ -35,11 +37,13 @@ export class PolicyService {
     private auditService: PolicyAuditService,
     private readonly eventEmitter: EventEmitter2,
     private readonly auditLogService: AuditService,
+    private readonly cachingService: CachingService,
   ) {}
 
   /**
    * Creates a new policy in DRAFT status.
    */
+  @CacheInvalidateByTag('policies', 'policy-list')
   async createPolicy(dto: CreatePolicyDto, userId: string): Promise<Policy> {
     // Note: In a real app, we'd fetch the User entity first
     const policy = this.policyRepository.create({
@@ -73,6 +77,7 @@ export class PolicyService {
    * Transitions a policy to a new status with validation.
    * Emits domain events for notification handling.
    */
+  @CacheInvalidateByTag('policies', 'policy-lookup', 'policy-list')
   async transitionPolicy(
     policyId: string,
     action: PolicyTransitionAction,
@@ -117,6 +122,10 @@ export class PolicyService {
   /**
    * Get all policies with pagination
    */
+  @Cacheable({
+    ttl: 120, // 2 minutes for paginated results
+    tags: ['policies', 'policy-list'],
+  })
   async getAllPolicies(
     paginationDto: PaginationDto,
   ): Promise<PaginatedResult<Policy>> {
@@ -128,6 +137,10 @@ export class PolicyService {
   }
 
   // FIXED: Added missing methods required by PolicyController
+  @Cacheable({
+    ttl: 300, // 5 minutes
+    tags: ['policies', 'policy-lookup'],
+  })
   async getPolicy(id: string) {
     const policy = await this.policyRepository.findOne({ where: { id } as any });
     if (!policy) throw new NotFoundException(`Policy with ID ${id} not found`);
