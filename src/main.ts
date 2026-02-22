@@ -11,6 +11,7 @@ import { rabbitConfig } from './queue/rabbitmq.config';
 import * as cookieParser from 'cookie-parser';
 import csurf from 'csurf';
 import { ValidationPipe } from '@nestjs/common';
+import { useContainer } from 'class-validator';
 
 async function bootstrap(): Promise<void> {
   const logger = new Logger('Bootstrap');
@@ -18,105 +19,78 @@ async function bootstrap(): Promise<void> {
   try {
     console.log('--- INICIANDO LEVANTAMIENTO DEL SERVIDOR ---');
 
-  
     const app = await NestFactory.create(AppModule);
-    const configService = app.get(ConfigService);
+    const appConfigService = app.get(ConfigService);
 
-    
-    const httpsKeyPath = configService.get<string>('HTTPS_KEY_PATH');
-    const httpsCertPath = configService.get<string>('HTTPS_CERT_PATH');
+    // HTTPS configuration
+    const httpsKeyPath = appConfigService.get<string>('HTTPS_KEY_PATH');
+    const httpsCertPath = appConfigService.get<string>('HTTPS_CERT_PATH');
 
     if (httpsKeyPath && httpsCertPath && fs.existsSync(httpsKeyPath)) {
-        
-        logger.log('HTTPS configuration detected (Skipped for dev stability)');
+      logger.log('HTTPS configuration detected (Skipped for dev stability)');
     }
 
-    
-    const corsOrigin = configService.get<string>('CORS_ORIGIN');
+    // CORS configuration
+    const corsOrigin = appConfigService.get<string>('CORS_ORIGIN');
     app.enableCors({
       origin: corsOrigin ? corsOrigin.split(',') : '*',
-      credentials: configService.get<boolean>('CORS_CREDENTIALS', true),
+      credentials: appConfigService.get<boolean>('CORS_CREDENTIALS', true),
     });
 
-    
+    // Security middleware
     app.use(helmet());
     app.setGlobalPrefix('api/v1');
 
-    
+    // Global pipes and filters
     app.useGlobalPipes(AppValidationPipe);
     app.useGlobalFilters(new GlobalExceptionFilter());
 
-    
+    // Enable shutdown hooks for graceful shutdown
     app.enableShutdownHooks();
-
     
-    if (configService.get<boolean>('SWAGGER_ENABLED', true)) {
+    // Make class-validator use NestJS container
+    useContainer(app.select(AppModule), { fallbackOnErrors: true });
+
+    // Swagger setup
+    if (appConfigService.get<boolean>('SWAGGER_ENABLED', true)) {
       const config = new DocumentBuilder()
         .setTitle('Stellar Insured API')
         .setDescription('API documentation for Stellar Insured backend')
-        .setVersion(configService.get<string>('APP_VERSION', '1.0'))
+        .setVersion(appConfigService.get<string>('APP_VERSION', '1.0'))
         .addBearerAuth()
         .build();
 
       const document = SwaggerModule.createDocument(app, config);
       SwaggerModule.setup(
-        configService.get<string>('SWAGGER_PATH', '/api/docs'),
+        appConfigService.get<string>('SWAGGER_PATH', '/api/docs'),
         app,
         document,
       );
     }
 
-    
-    const port = configService.get<number>('PORT', 4000);
+    // Get port from config
+    const port = appConfigService.get<number>('PORT', 4000);
     
     console.log(`---  INTENTANDO ABRIR PUERTO ${port} ---`);
+    
+    // Connect RabbitMQ microservice
+    app.connectMicroservice(rabbitConfig);
+    await app.startAllMicroservices();
+    
     await app.listen(port);
 
+    // Log startup information
     logger.log(`Application is running on: http://localhost:${port}/api/v1`);
     logger.log(`Swagger UI: http://localhost:${port}/api/docs`);
+    logger.log(`Health Check: http://localhost:${port}/health`);
+    logger.log(`Liveness Probe: http://localhost:${port}/health/live`);
+    logger.log(`Readiness Probe: http://localhost:${port}/health/ready`);
 
   } catch (error) {
     console.error('---  ERROR FATAL DURANTE EL BOOTSTRAP ---');
     console.error(error);
     process.exit(1);
   }
-}
-
-bootstrap();
-  app.connectMicroservice(rabbitConfig);
-
-  await app.startAllMicroservices();
-
-  // Swagger setup
-  if (appConfigService.get<boolean>('SWAGGER_ENABLED', true)) {
-    const config = new DocumentBuilder()
-      .setTitle('Stellar Insured API')
-      .setDescription('API documentation for Stellar Insured backend')
-      .setVersion(appConfigService.get<string>('APP_VERSION', '1.0'))
-      .addBearerAuth()
-      .build();
-
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup(
-      appConfigService.get<string>('SWAGGER_PATH', '/api/docs'),
-      app,
-      document,
-    );
-  }
-
-  // Get port from config
-  const port = appConfigService.get<number>('PORT', 4000);
-
-  await app.listen(port);
-
-  // Log startup information
-  /* eslint-disable no-console */
-  console.log(`\n Application is running on: http://localhost:${port}`);
-  console.log(
-    ` Environment: ${appConfigService.get('NODE_ENV', 'development')}`,
-  );
-  console.log(`📋 Swagger UI: http://localhost:${port}/api/docs`);
-  /* eslint-enable no-console */
 }
 
 void bootstrap();

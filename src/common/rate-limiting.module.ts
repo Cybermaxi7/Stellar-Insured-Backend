@@ -1,6 +1,6 @@
 import { Module, Global } from '@nestjs/common';
-import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigModule } from '../config/config.module';
+import { CachingModule } from './caching/caching.module';
 import { RateLimitService } from './services/rate-limit.service';
 import { MonitoringService } from './services/monitoring.service';
 import { CircuitBreakerService } from './services/circuit-breaker.service';
@@ -12,7 +12,7 @@ import { CircuitBreakerService } from './services/circuit-breaker.service';
   // already registers CacheModule (with isGlobal:true), but
   // importing here avoids timing/order issues and makes unit tests
   // easier to author.
-  imports: [ConfigModule, CacheModule],
+  imports: [ConfigModule, CachingModule],
   providers: [
     RateLimitService,
     MonitoringService,
