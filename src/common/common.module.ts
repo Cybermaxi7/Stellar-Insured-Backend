@@ -1,9 +1,22 @@
-import { Global, Module } from '@nestjs/common';
-import { ExternalServiceClient } from './services/external-service.client';
+import { Global, Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { CorrelationIdMiddleware } from './middleware/correlation-id.middleware';
+import { LoggingInterceptor } from './interceptors/logging.interceptor';
 
 @Global()
 @Module({
-  providers: [ExternalServiceClient],
-  exports: [ExternalServiceClient],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
+    },
+  ],
 })
-export class CommonModule {}
+export class CommonModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    
+    consumer
+      .apply(CorrelationIdMiddleware)
+      .forRoutes('*');
+  }
+}

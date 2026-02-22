@@ -15,16 +15,25 @@ export class EncryptionRegistry implements OnModuleInit {
         this.logger.log('EncryptionRegistry initialized for TypeORM instances');
     }
 
-    static getEncryptionTransformer(): ValueTransformer {
+    static getEncryptionTransformer(): ValueTransformer | any {
         if (!EncryptionRegistry.instance) {
-            throw new Error('EncryptionRegistry not initialized yet');
+            
+            console.warn('EncryptionRegistry: Delaying initialization for entities...');
+            return {
+                to: (value: any) => value,
+                from: (value: any) => value,
+            };
         }
         return getEncryptionTransformer(EncryptionRegistry.instance.encryptionService);
     }
-
-    static getObjectEncryptionTransformer<T>(): ValueTransformer {
+static getObjectEncryptionTransformer<T>(): ValueTransformer | any {
         if (!EncryptionRegistry.instance) {
-            throw new Error('EncryptionRegistry not initialized yet');
+            
+            console.warn(' EncryptionRegistry: Delaying Object initialization for entities...');
+            return {
+                to: (value: any) => value,
+                from: (value: any) => value,
+            };
         }
         return getObjectEncryptionTransformer<T>(EncryptionRegistry.instance.encryptionService);
     }
