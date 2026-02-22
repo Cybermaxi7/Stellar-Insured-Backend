@@ -22,7 +22,7 @@
     "benchmark:before": "node scripts/benchmark.js && mv benchmark-results.json benchmark-before.json",
     "benchmark:after": "node scripts/benchmark.js && mv benchmark-results.json benchmark-after.json"
   },
-  "dependencies": {
+ "dependencies": {
     "@nestjs/bull": "^11.0.4",
     "@nestjs/cache-manager": "^3.1.0",
     "@nestjs/common": "^11.0.1",

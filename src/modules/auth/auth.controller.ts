@@ -16,7 +16,7 @@ import { LoginChallengeDto } from './dtos/login-challenge.dto';
 import { LoginDto } from './dtos/login.dto';
 import { RefreshTokenDto } from './dtos/refresh-token.dto';
 import { LogoutDto } from './dtos/session.dto';
-import { MfaSetupInitDto, MfaSetupVerifyDto, MfaVerifyDto } from './dtos/mfa.dto';
+import { MfaSetupVerifyDto, MfaVerifyDto } from './dtos/mfa.dto';
 import {
   ApiTags,
   ApiOperation,
@@ -38,6 +38,9 @@ import { Request } from 'express';
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
+    private readonly mfaService: MfaService,
+    private readonly sessionService: SessionService,
+  ) {}
     private readonly authServices: AuthServices,
     private readonly mfaService: MfaService,
     private readonly sessionService: SessionService,
@@ -129,10 +132,6 @@ export class AuthController {
     };
   }
 
-  /**
-   * MFA Setup and Management Endpoints
-   */
-
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @Post('mfa/setup/totp')
@@ -199,10 +198,6 @@ export class AuthController {
   })
   @HttpCode(HttpStatus.OK)
   async verifyMfa(@Body() dto: MfaVerifyDto, @Req() req: any) {
-    // Extract user info from session token or request
-    // This is a temporary MFA verification endpoint
-    // In real implementation, this would be called after initial login
-
     return {
       message: 'MFA verification endpoint - implement based on your flow',
     };
@@ -215,9 +210,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'MFA status retrieved' })
   async getMfaStatus(@Req() req: any) {
     const userId = req.user.sub;
-
     const mfaStatus = await this.mfaService.getMfaStatus(userId);
-
     return mfaStatus;
   }
 
@@ -232,18 +225,12 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async regenerateBackupCodes(@Req() req: any) {
     const userId = req.user.sub;
-
     const backupCodes = await this.mfaService.regenerateBackupCodes(userId);
-
     return {
       message: 'Backup codes regenerated',
       backupCodes,
     };
   }
-
-  /**
-   * Session Management Endpoints
-   */
 
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -255,9 +242,7 @@ export class AuthController {
     @Query('details') includeDetails?: boolean,
   ) {
     const userId = req.user.sub;
-
     let sessions = await this.sessionService.getUserSessionsForDisplay(userId);
-
     return {
       sessions,
       count: sessions.length,
@@ -271,15 +256,10 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Session revoked' })
   @HttpCode(HttpStatus.OK)
   async revokeSession(@Req() req: any, @Body('sessionId') sessionId: string) {
-    const userId = req.user.sub;
-
-    // Verify the session belongs to the user
-    // In a real implementation, you'd check this
     await this.sessionService.revokeSession(
       sessionId,
       'User revoked session',
     );
-
     return {
       message: 'Session revoked successfully',
     };
